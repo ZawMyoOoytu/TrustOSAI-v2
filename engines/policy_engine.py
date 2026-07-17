@@ -1,16 +1,581 @@
+from typing import Dict, Any, Tuple
+
+
+
 class PolicyEngine:
 
 
-    def check(
+    """
+    TrustOSAI Policy Governance Engine
+
+
+    Responsibilities:
+
+    1. Static Safety Policy Enforcement
+    2. Trust Boundary Validation
+    3. Risk Constraint Validation
+    4. RBAC Authorization Control
+    5. Governance Metadata Generation
+
+
+    Output:
+
+        policy_passed
+        policy_status
+        violations
+        governance_level
+
+
+    """
+
+
+
+    def __init__(self):
+
+
+        # =====================================================
+        # Forbidden Policy Domains
+        # =====================================================
+
+        self.blacklisted_topics = [
+
+            "classified_military_data",
+
+            "unauthorized_financial_transfer",
+
+            "root_credential_leak",
+
+            "credential_extraction",
+
+            "secret_key_dump"
+
+        ]
+
+
+
+        # =====================================================
+        # Role Based Access Control Matrix
+        # =====================================================
+
+
+        self.role_permissions = {
+
+
+            "admin":
+
+            [
+
+                "read",
+
+                "write",
+
+                "execute",
+
+                "override"
+
+            ],
+
+
+
+            "operator":
+
+            [
+
+                "read",
+
+                "write",
+
+                "execute"
+
+            ],
+
+
+
+            "user-default-01":
+
+            [
+
+                "read",
+
+                "execute"
+
+            ],
+
+
+
+            "guest":
+
+            [
+
+                "read"
+
+            ]
+
+        }
+
+
+
+
+        # =====================================================
+        # Governance Thresholds
+        # =====================================================
+
+
+        self.minimum_trust = 50.0
+
+
+        self.maximum_risk = 0.80
+
+
+
+        self.policy_version = "v1.0.4"
+
+
+
+
+
+    # =====================================================
+    # Risk Normalization
+    # =====================================================
+
+
+    def normalize_risk(
         self,
-        trust_score,
-        risk_score
-    ):
+        risk_score: float
+    ) -> float:
 
 
-        if trust_score >= 0.75 and risk_score <= 0.5:
+        risk_score = float(
+            risk_score or 0
+        )
 
-            return "ALLOW"
+
+        # Convert percentage format
+
+        if risk_score > 1:
+
+            risk_score = risk_score / 100
 
 
-        return "BLOCK"
+
+        return min(
+
+            max(
+
+                risk_score,
+
+                0.0
+
+            ),
+
+            1.0
+
+        )
+
+
+
+
+
+    # =====================================================
+    # Legacy Policy Interface
+    # =====================================================
+
+
+    def check(
+
+        self,
+
+        trust_score: float,
+
+        risk_score: float
+
+    ) -> str:
+
+
+
+        trust_score = float(
+            trust_score or 0
+        )
+
+
+        risk_score = self.normalize_risk(
+            risk_score
+        )
+
+
+
+        if (
+
+            trust_score < self.minimum_trust
+
+            or
+
+            risk_score > self.maximum_risk
+
+        ):
+
+            return "FAILED"
+
+
+
+        return "PASSED"
+
+
+
+
+
+    # =====================================================
+    # Advanced Governance Constraint Engine
+    # =====================================================
+
+
+    def check_constraints(
+
+        self,
+
+        request_data: Dict[str,Any]
+
+    ) -> Tuple[bool,Dict[str,Any]]:
+
+
+
+        # -------------------------------------------------
+        # Request Extraction
+        # -------------------------------------------------
+
+
+        task = request_data.get(
+
+            "task",
+
+            ""
+
+        )
+
+
+        task_content = task.lower()
+
+
+
+        user_role = request_data.get(
+
+            "user_role",
+
+            "guest"
+
+        )
+
+
+
+        trust_score = float(
+
+            request_data.get(
+
+                "trust_score",
+
+                0
+
+            )
+
+        )
+
+
+
+        risk_score = self.normalize_risk(
+
+            request_data.get(
+
+                "risk_score",
+
+                0
+
+            )
+
+        )
+
+
+
+        violations = []
+
+
+
+
+        # =================================================
+        # 1. Static Safety Policy
+        # =================================================
+
+
+        for topic in self.blacklisted_topics:
+
+
+            if topic in task_content:
+
+
+                violations.append(
+
+                    {
+
+                    "type":
+
+                    "STATIC_POLICY",
+
+                    "message":
+
+                    f"Forbidden topic detected: {topic}"
+
+                    }
+
+                )
+
+
+
+
+
+        # =================================================
+        # 2. Trust Boundary Validation
+        # =================================================
+
+
+        if trust_score < self.minimum_trust:
+
+
+            violations.append(
+
+                {
+
+                "type":
+
+                "TRUST_THRESHOLD",
+
+
+                "message":
+
+                "Trust score below minimum governance threshold"
+
+                }
+
+            )
+
+
+
+
+
+        # =================================================
+        # 3. Risk Boundary Validation
+        # =================================================
+
+
+        if risk_score > self.maximum_risk:
+
+
+            violations.append(
+
+                {
+
+                "type":
+
+                "RISK_THRESHOLD",
+
+
+                "message":
+
+                "Risk score exceeds maximum allowed level"
+
+                }
+
+            )
+
+
+
+
+
+        # =================================================
+        # 4. RBAC Authorization
+        # =================================================
+
+
+        required_permission = "execute"
+
+
+
+        mutation_actions = [
+
+            "delete",
+
+            "update",
+
+            "modify",
+
+            "write",
+
+            "allocate"
+
+        ]
+
+
+
+        if any(
+
+            action in task_content
+
+            for action in mutation_actions
+
+        ):
+
+
+            required_permission = "write"
+
+
+
+
+
+        allowed_permissions = self.role_permissions.get(
+
+            user_role,
+
+            []
+
+        )
+
+
+
+
+
+        if required_permission not in allowed_permissions:
+
+
+            violations.append(
+
+                {
+
+                "type":
+
+                "RBAC_POLICY",
+
+
+                "message":
+
+                f"Role '{user_role}' lacks '{required_permission}' permission"
+
+                }
+
+            )
+
+
+
+
+
+        # =================================================
+        # Policy Verdict
+        # =================================================
+
+
+        policy_passed = (
+
+            len(violations) == 0
+
+        )
+
+
+
+
+
+        if policy_passed:
+
+
+            governance_level = "SAFE"
+
+
+        elif len(violations) <= 2:
+
+
+            governance_level = "REVIEW"
+
+
+        else:
+
+
+            governance_level = "BLOCK"
+
+
+
+
+
+        metadata = {
+
+
+            "policy_passed":
+
+                policy_passed,
+
+
+
+            "policy_status":
+
+                (
+
+                "APPROVED"
+
+                if policy_passed
+
+                else
+
+                "REJECTED"
+
+                ),
+
+
+
+            "governance_level":
+
+                governance_level,
+
+
+
+            "user_role":
+
+                user_role,
+
+
+
+            "required_permission":
+
+                required_permission,
+
+
+
+            "trust_score":
+
+                trust_score,
+
+
+
+            "risk_score":
+
+                risk_score,
+
+
+
+            "violations":
+
+                violations,
+
+
+
+            "rule_set_version":
+
+                self.policy_version
+
+        }
+
+
+
+
+
+        return (
+
+            policy_passed,
+
+            metadata
+
+        )

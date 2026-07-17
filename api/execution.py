@@ -1,86 +1,184 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+
 from database.session import get_db
-from database.models import Execution
 
 
-router = APIRouter(
-    prefix="/execution",
-    tags=["Execution"]
+from schemas.execution import (
+    ExecuteRequest,
+    ExecutionResponse
 )
 
 
-class ExecuteRequest(BaseModel):
-    task: str
+from services.execution_service import ExecutionService
 
 
 
-@router.post("/")
+# ==================================================
+# TrustOSAI Execution API Router
+# ==================================================
+
+router = APIRouter(
+
+    prefix="/api/execution",
+
+    tags=["Execution"]
+
+)
+
+
+
+# ==================================================
+# Runtime Service Instance
+# ==================================================
+
+execution_service = ExecutionService()
+
+
+
+# ==================================================
+# Execute Task Endpoint
+# ==================================================
+
+@router.post(
+
+    "/",
+
+    response_model=ExecutionResponse
+
+)
+
 def execute_task(
+
     request: ExecuteRequest,
+
     db: Session = Depends(get_db)
+
 ):
 
-    agent = "RiskAgent"
-
-    trust_score = 98.5
-
-    risk_score = 1.5
-
-    conflict_score = 0.0
-
-    decision = "ALLOW"
-
-    result = "Completed successfully"
+    """
+    TrustOSAI Execution Control Plane
 
 
+    Pipeline:
 
-    execution = Execution(
+        API Request
+
+             |
+
+             v
+
+        Execution Service
+
+             |
+
+             +--> Trust Engine
+
+             +--> Risk Engine
+
+             +--> Conflict Engine
+
+             +--> Policy Engine
+
+             +--> Decision Engine
+
+             +--> Telemetry Engine
+
+             +--> Cost Engine
+
+             +--> Audit Engine
+
+             |
+
+             v
+
+        PostgreSQL Execution Ledger
+
+    """
+
+
+    execution = execution_service.execute(
 
         task=request.task,
 
-        agent=agent,
-
-        trust_score=trust_score,
-
-        risk_score=risk_score,
-
-        conflict_score=conflict_score,
-
-        decision=decision,
-
-        result=result
+        db=db
 
     )
 
 
-    db.add(execution)
-
-    db.commit()
-
-    db.refresh(execution)
-
-
     return {
 
-        "execution_id": execution.id,
 
-        "task": execution.task,
+        "execution_id":
+            execution.id,
 
-        "agent": execution.agent,
 
-        "trust_score": execution.trust_score,
+        "task":
+            execution.task,
 
-        "risk_score": execution.risk_score,
 
-        "conflict_score": execution.conflict_score,
+        "agent":
+            execution.agent,
 
-        "decision": execution.decision,
 
-        "result": execution.result,
 
-        "created_at": execution.created_at
+        "governance": {
+
+
+            "trust_score":
+                execution.trust_score,
+
+
+            "risk_score":
+                execution.risk_score,
+
+
+            "conflict_score":
+                execution.conflict_score,
+
+
+            "decision":
+                execution.decision
+
+        },
+
+
+
+        "runtime": {
+
+
+            "latency_ms":
+                execution.latency_ms,
+
+
+            "quality_score":
+                execution.quality_score
+
+        },
+
+
+
+        "usage": {
+
+
+            "prompt_tokens":
+                execution.prompt_tokens,
+
+
+            "completion_tokens":
+                execution.completion_tokens
+
+        },
+
+
+
+        "result":
+            execution.result,
+
+
+
+        "created_at":
+            execution.created_at
 
     }

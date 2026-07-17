@@ -1,26 +1,38 @@
 from fastapi import APIRouter
 
+
 from api.execution import router as execution_router
-from api.policy import router as policy_router
+from api.executions import router as executions_router
 from api.health import router as health_router
+from api.policy import router as policy_router
+from api.stats import router as stats_router
+
 
 
 router = APIRouter()
 
 
+
 router.include_router(
-    execution_router,
-    prefix="/api"
+    execution_router
 )
 
 
 router.include_router(
-    policy_router,
-    prefix="/api"
+    executions_router
 )
 
 
 router.include_router(
-    health_router,
-    prefix="/api"
+    health_router
+)
+
+
+router.include_router(
+    policy_router
+)
+
+
+router.include_router(
+    stats_router
 )

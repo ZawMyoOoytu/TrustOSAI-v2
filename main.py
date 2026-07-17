@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 
-from database.session import Base, engine
+from database.connection import Base, engine
 
 from api.routes import router
 
 
 # ==================================================
-# Import Models
-# Required for SQLAlchemy registration
+# Import Database Models
+# Required for SQLAlchemy table registration
 # ==================================================
 
 from database.models import Execution
@@ -34,15 +34,17 @@ app = FastAPI(
 
     version="2.0",
 
-    description=
-    "Trust-aware AI Governance Runtime with Execution Control"
+    description=(
+        "Trust-aware AI Governance Runtime "
+        "with Execution Control"
+    )
 
 )
 
 
 
 # ==================================================
-# API Routes
+# API Router Registration
 # ==================================================
 
 app.include_router(
@@ -63,37 +65,15 @@ def root():
         "system": "TrustOSAI",
 
         "runtime":
-        "Governance Execution Runtime",
+            "Governance Execution Runtime",
 
         "database":
-        "PostgreSQL",
+            "PostgreSQL",
 
         "version":
-        "2.0",
+            "2.0",
 
         "status":
-        "running"
-
-    }
-
-
-
-# ==================================================
-# Health Check
-# ==================================================
-
-@app.get("/health")
-def health():
-
-    return {
-
-        "status":
-        "healthy",
-
-        "service":
-        "TrustOSAI API",
-
-        "database":
-        "connected"
+            "running"
 
     }
