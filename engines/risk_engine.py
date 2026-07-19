@@ -1,4 +1,5 @@
 import re
+import time
 
 from typing import Dict, Any, Tuple
 
@@ -10,7 +11,7 @@ class RiskEngine:
     TrustOSAI Adaptive Risk Evaluation Engine
 
 
-    Risk Equation:
+    Risk Model:
 
         R(t)=
         wi*Injection
@@ -30,12 +31,8 @@ class RiskEngine:
     """
 
 
+
     def __init__(self):
-
-
-        # =================================================
-        # Prompt Injection Detection
-        # =================================================
 
 
         self.injection_patterns = [
@@ -60,11 +57,6 @@ class RiskEngine:
 
 
 
-        # =================================================
-        # PII Detection
-        # =================================================
-
-
         self.pii_patterns = {
 
 
@@ -86,11 +78,6 @@ class RiskEngine:
 
         }
 
-
-
-        # =================================================
-        # Malicious Intent
-        # =================================================
 
 
         self.malicious_keywords = [
@@ -118,13 +105,12 @@ class RiskEngine:
 
 
     # =====================================================
-    # Main Runtime Interface
+    # Simple Interface
     # =====================================================
-
 
     def analyze(
         self,
-        task:str
+        task: str
     ) -> float:
 
 
@@ -133,7 +119,7 @@ class RiskEngine:
             self.analyze_intent(
 
                 {
-                    "task":task
+                    "task": task
                 }
 
             )
@@ -148,17 +134,17 @@ class RiskEngine:
 
 
     # =====================================================
-    # Detailed Threat Analysis
+    # Detailed Risk Analysis
     # =====================================================
 
-
     def analyze_intent(
-
         self,
+        request_data: Dict[str,Any],
+        execution_id=None
+    ) -> Tuple[float,float,Dict[str,Any]]:
 
-        request_data:Dict[str,Any]
 
-    )->Tuple[float,float,Dict[str,Any]]:
+        start_time = time.time()
 
 
 
@@ -181,7 +167,6 @@ class RiskEngine:
         malicious_hits = 0
 
 
-
         threats = []
 
 
@@ -189,9 +174,8 @@ class RiskEngine:
 
 
         # =================================================
-        # 1. Injection Analysis
+        # Injection Detection
         # =================================================
-
 
         for pattern in self.injection_patterns:
 
@@ -219,13 +203,11 @@ class RiskEngine:
 
 
 
-
         # =================================================
-        # 2. PII Analysis
+        # PII Detection
         # =================================================
 
-
-        for name,pattern in self.pii_patterns.items():
+        for name, pattern in self.pii_patterns.items():
 
 
             matches = re.findall(
@@ -253,11 +235,9 @@ class RiskEngine:
 
 
 
-
         # =================================================
-        # 3. Malicious Intent Analysis
+        # Malicious Intent Detection
         # =================================================
-
 
         lower_task = task.lower()
 
@@ -282,17 +262,18 @@ class RiskEngine:
 
 
 
-
         # =================================================
         # Risk Mathematical Model
         # =================================================
 
-
         normalized_risk = (
 
             min(
+
                 injection_hits,
+
                 2
+
             )
 
             *
@@ -302,9 +283,13 @@ class RiskEngine:
 
             +
 
+
             min(
+
                 malicious_hits,
+
                 3
+
             )
 
             *
@@ -314,9 +299,13 @@ class RiskEngine:
 
             +
 
+
             min(
+
                 pii_hits,
+
                 2
+
             )
 
             *
@@ -324,7 +313,6 @@ class RiskEngine:
             0.10
 
         )
-
 
 
 
@@ -344,9 +332,6 @@ class RiskEngine:
 
 
 
-
-        # Convert to 0-100 scale
-
         risk_score = round(
 
             normalized_risk * 100,
@@ -360,32 +345,52 @@ class RiskEngine:
 
 
         # =================================================
-        # Severity Classification
+        # Severity
         # =================================================
-
 
         if risk_score >= 75:
 
 
-            severity="CRITICAL"
+            severity = "CRITICAL"
 
 
         elif risk_score >= 40:
 
 
-            severity="MEDIUM"
+            severity = "MEDIUM"
 
 
         else:
 
 
-            severity="LOW"
+            severity = "LOW"
+
+
+
+
+
+        latency_ms = round(
+
+            (time.time() - start_time)
+
+            *
+
+            1000,
+
+            3
+
+        )
 
 
 
 
 
         metadata = {
+
+
+            "execution_id":
+
+                execution_id,
 
 
             "risk_score":
@@ -410,7 +415,6 @@ class RiskEngine:
 
             {
 
-
                 "injection":
 
                     injection_hits,
@@ -425,10 +429,52 @@ class RiskEngine:
 
                     malicious_hits
 
+            },
+
+
+
+            # =================================
+            # Execution Trace
+            # =================================
+
+            "trace":
+
+            {
+
+                "engine":
+
+                    "RiskEngine",
+
+
+                "execution_id":
+
+                    execution_id,
+
+
+                "latency_ms":
+
+                    latency_ms,
+
+
+                "output":
+
+                {
+
+                    "risk_score":
+
+                        risk_score,
+
+
+                    "severity":
+
+                        severity
+
+                }
+
             }
 
-
         }
+
 
 
 

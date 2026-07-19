@@ -1,88 +1,72 @@
+import json
+
 from datetime import datetime
+from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
-
-from engines.trust_engine import TrustEngine
-from engines.risk_engine import RiskEngine
-from engines.conflict_engine import ConflictEngine
-from engines.policy_engine import PolicyEngine
-from engines.decision_engine import DecisionEngine
-from engines.telemetry_engine import TelemetryEngine
-from engines.cost_engine import CostEngine
-
-
+from core.runtime import TrustOSRuntime
 from database.models import Execution
 
 
 
+# ==========================================================
+# JSON SAFE
+# ==========================================================
+
+def json_safe(obj: Any):
+
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+
+
+    if isinstance(obj, dict):
+
+        return {
+            k: json_safe(v)
+            for k, v in obj.items()
+        }
+
+
+    if isinstance(obj, list):
+
+        return [
+            json_safe(v)
+            for v in obj
+        ]
+
+
+    if isinstance(obj, tuple):
+
+        return [
+            json_safe(v)
+            for v in obj
+        ]
+
+
+    return obj
+
+
+
+
+
+# ==========================================================
+# SERVICE
+# ==========================================================
 
 
 class ExecutionService:
 
 
-    """
-    TrustOSAI Execution Control Plane
-
-
-    Pipeline:
-
-    API Request
-
-        |
-
-        v
-
-    Execution Service
-
-        |
-
-        +--> Trust Engine
-
-        +--> Risk Engine
-
-        +--> Policy Engine
-
-        +--> Conflict Engine
-
-        +--> Decision Engine
-
-        +--> Telemetry Engine
-
-        +--> Cost Engine
-
-        |
-
-        v
-
-    PostgreSQL Execution Ledger
-
-
-    """
-
-
-
-
     def __init__(self):
 
-
-        self.trust_engine = TrustEngine()
-
-        self.risk_engine = RiskEngine()
-
-        self.policy_engine = PolicyEngine()
-
-        self.conflict_engine = ConflictEngine()
-
-        self.decision_engine = DecisionEngine()
-
-        self.telemetry_engine = TelemetryEngine()
-
-        self.cost_engine = CostEngine()
+        self.runtime = TrustOSRuntime()
 
 
 
-
+    # ======================================================
+    # EXECUTE
+    # ======================================================
 
 
     def execute(
@@ -92,319 +76,136 @@ class ExecutionService:
     ):
 
 
-
-        start_time = datetime.utcnow()
-
-
-
-        # =====================================================
-        # 1. TRUST ENGINE
-        # =====================================================
-
-
-        trust_result = self.trust_engine.evaluate(
-
+        runtime_result = self.runtime.execute(
             task,
-
             db
+        )
 
+
+        runtime_result = json_safe(
+            runtime_result
         )
 
 
 
-        if isinstance(trust_result, dict):
+        decision = runtime_result.get(
+            "decision",
+            "BLOCK"
+        )
 
-            trust_score = trust_result.get(
 
+        trust_score = self.safe_float(
+            runtime_result.get(
                 "trust_score",
-
                 0
-
             )
-
-        else:
-
-            trust_score = trust_result
-
-
-
-        trust_score = float(
-
-            trust_score or 0
-
         )
 
 
-
-
-
-
-
-        # =====================================================
-        # 2. RISK ENGINE
-        # =====================================================
-
-
-        risk_result = self.risk_engine.analyze(
-
-            task
-
-        )
-
-
-
-        if isinstance(risk_result, tuple):
-
-            risk_score = risk_result[1]
-
-
-        elif isinstance(risk_result, dict):
-
-            risk_score = risk_result.get(
-
+        risk_score = self.safe_float(
+            runtime_result.get(
                 "risk_score",
-
                 0
-
             )
-
-
-        else:
-
-            risk_score = risk_result
-
-
-
-        risk_score = float(
-
-            risk_score or 0
-
         )
 
 
-
-        # Convert normalized risk
-
-        # 0.0-1.0 --> 0-100
-
-        if risk_score <= 1:
-
-            risk_percent = (
-
-                risk_score * 100
-
-            )
-
-        else:
-
-            risk_percent = risk_score
-
-
-
-
-
-
-
-        # =====================================================
-        # 3. POLICY ENGINE
-        # =====================================================
-
-
-        policy_passed, policy_metadata = (
-
-            self.policy_engine.check_constraints(
-
-                {
-
-                    "task": task,
-
-                    "trust_score": trust_score,
-
-                    "risk_score": risk_percent
-
-                }
-
-            )
-
-        )
-
-
-
-
-
-
-
-        # =====================================================
-        # 4. CONFLICT ENGINE
-        # =====================================================
-
-
-        conflict_result = self.conflict_engine.detect(
-
-            task,
-
-            policy_metadata,
-
-            db
-
-        )
-
-
-
-        if isinstance(conflict_result, dict):
-
-            conflict_score = conflict_result.get(
-
+        conflict_score = self.safe_float(
+            runtime_result.get(
                 "conflict_score",
-
                 0
-
             )
-
-
-        else:
-
-            conflict_score = conflict_result
+        )
 
 
 
-        conflict_score = float(
+        agent = (
 
-            conflict_score or 0
+            runtime_result.get("agent")
+
+            or
+
+            runtime_result.get("route")
+
+            or
+
+            "GovernanceAgent"
+
+        )
+
+
+
+        governance_reason = (
+
+            runtime_result.get("reason")
+
+            or
+
+            runtime_result.get("governance_reason")
+
+        )
+
+
+
+        # =============================
+        # RESULT
+        # =============================
+
+
+        result_json = self.normalize_json(
+
+            runtime_result.get(
+                "result",
+                {}
+            )
 
         )
 
 
 
 
+        # =============================
+        # TELEMETRY
+        # =============================
 
 
+        telemetry = runtime_result.get(
+            "telemetry",
+            {}
+        )
 
 
-        # =====================================================
-        # 5. GOVERNANCE DECISION
-        # =====================================================
+        latency_ms = self.safe_float(
 
-
-        if not policy_passed:
-
-
-            # Hard block only unsafe policy violation
-
-            if risk_percent >= 75:
-
-
-                decision = "BLOCK"
-
-
-            else:
-
-
-                decision = self.decision_engine.decide(
-
-                    trust_score,
-
-                    risk_percent,
-
-                    conflict_score
-
+            telemetry.get(
+                "latency_ms",
+                runtime_result.get(
+                    "runtime_ms",
+                    0
                 )
-
-
-        else:
-
-
-            decision = self.decision_engine.decide(
-
-                trust_score,
-
-                risk_percent,
-
-                conflict_score
-
             )
 
+        )
 
 
+        runtime_ms = self.safe_float(
 
-
-
-
-
-        # =====================================================
-        # 6. EXECUTION RESULT
-        # =====================================================
-
-
-        if decision == "APPROVED":
-
-
-            result = (
-
-                "Execution completed successfully"
-
+            runtime_result.get(
+                "runtime_ms",
+                latency_ms
             )
-
-
-        elif decision == "REVIEW":
-
-
-            result = (
-
-                "Execution pending human governance review"
-
-            )
-
-
-        else:
-
-
-            result = (
-
-                "Execution blocked by governance policy"
-
-            )
-
-
-
-
-
-
-
-
-        # =====================================================
-        # 7. RUNTIME METRICS
-        # =====================================================
-
-
-        end_time = datetime.utcnow()
-
-
-
-        latency_ms = int(
-
-            (
-
-                end_time - start_time
-
-            )
-
-            .total_seconds()
-
-            *
-
-            1000
 
         )
 
 
 
+        quality_score = self.extract_quality(
 
-        quality_score = round(
+            result_json,
 
-            trust_score / 100,
+            telemetry,
 
-            4
+            decision
 
         )
 
@@ -412,112 +213,93 @@ class ExecutionService:
 
 
 
+        # =============================
+        # TOKEN
+        # =============================
 
 
+        token = result_json.get(
+            "token_telemetry",
+            {}
+        )
 
 
-        # =====================================================
-        # 8. COST ENGINE
-        # =====================================================
+        prompt_tokens = self.safe_int(
 
-
-        prompt_tokens = len(
-
-            task.split()
+            token.get(
+                "prompt_tokens",
+                0
+            )
 
         )
 
 
-        completion_tokens = 3
+        completion_tokens = self.safe_int(
+
+            token.get(
+                "completion_tokens",
+                0
+            )
+
+        )
 
 
 
-        try:
+
+        # =============================
+        # COST
+        # =============================
 
 
-            _, total_cost, cost_metadata = (
+        cost = runtime_result.get(
+            "cost",
+            {}
+        )
 
-                self.cost_engine.calculate_financial_metrics(
 
-                    "gpt-4o",
+        if isinstance(cost,dict):
 
-                    prompt_tokens,
+            cost_usd = self.safe_float(
 
-                    completion_tokens
-
+                cost.get(
+                    "cost_usd",
+                    0
                 )
 
             )
 
+        else:
 
-        except Exception:
-
-
-            total_cost = 0
-
-            cost_metadata = {}
+            cost_usd = self.safe_float(cost)
 
 
 
 
+        # =============================
+        # TRACE
+        # =============================
 
 
+        execution_trace = {
+
+            "runtime":
+
+                runtime_result,
 
 
+            "stored_at":
 
+                datetime.utcnow().isoformat()
 
-        # =====================================================
-        # 9. TELEMETRY ENGINE
-        # =====================================================
-
-
-        telemetry = self.telemetry_engine.collect(
-
-            task,
-
-            {
-
-
-                "agent":
-
-                    "GovernanceAgent",
-
-
-                "trust_score":
-
-                    trust_score,
-
-
-                "risk_score":
-
-                    risk_percent,
-
-
-                "decision":
-
-                    decision,
-
-
-                "runtime_ms":
-
-                    latency_ms
-
-
-            }
-
-        )
+        }
 
 
 
 
 
-
-
-
-
-        # =====================================================
-        # 10. POSTGRES EXECUTION LEDGER
-        # =====================================================
+        # =============================
+        # DATABASE
+        # =============================
 
 
         execution = Execution(
@@ -526,13 +308,16 @@ class ExecutionService:
             task=task,
 
 
-            agent="GovernanceAgent",
+            agent=agent,
+
+
+            route=agent,
 
 
             trust_score=trust_score,
 
 
-            risk_score=risk_percent,
+            risk_score=risk_score,
 
 
             conflict_score=conflict_score,
@@ -541,7 +326,35 @@ class ExecutionService:
             decision=decision,
 
 
-            result=result,
+            policy_result=decision,
+
+
+            governance_result=decision,
+
+
+            governance_status=decision,
+
+
+            governance_reason=governance_reason,
+
+
+
+            result=json.dumps(
+                result_json
+            ),
+
+
+            execution_result=json.dumps(
+                result_json
+            ),
+
+
+
+            execution_trace=execution_trace,
+
+
+
+            runtime_ms=runtime_ms,
 
 
             latency_ms=latency_ms,
@@ -553,46 +366,197 @@ class ExecutionService:
             prompt_tokens=prompt_tokens,
 
 
-            completion_tokens=completion_tokens
+            completion_tokens=completion_tokens,
 
+
+            cost_usd=cost_usd
 
         )
 
 
 
-
         try:
 
-
-            db.add(
-
-                execution
-
-            )
-
+            db.add(execution)
 
             db.commit()
 
+            db.refresh(execution)
 
 
-            db.refresh(
-
-                execution
-
-            )
-
-
-        except Exception as e:
-
+        except Exception:
 
             db.rollback()
 
-
-            raise e
-
-
-
+            raise
 
 
 
         return execution
+
+
+
+
+
+    # ======================================================
+    # QUALITY
+    # ======================================================
+
+
+    def extract_quality(
+        self,
+        result,
+        telemetry,
+        decision
+    ):
+
+
+        if isinstance(result,str):
+
+            try:
+
+                result=json.loads(result)
+
+            except:
+
+                result={}
+
+
+
+
+        # direct
+
+        if "quality_score" in result:
+
+            return self.safe_float(
+
+                result["quality_score"]
+
+            )
+
+
+
+        if "quality_score_qt" in result:
+
+            return self.safe_float(
+
+                result["quality_score_qt"]
+
+            )
+
+
+
+        # nested trace
+
+        trace=result.get(
+            "trace",
+            {}
+        )
+
+
+        if isinstance(trace,dict):
+
+            output=trace.get(
+                "output",
+                {}
+            )
+
+
+            if isinstance(output,dict):
+
+                if "quality_score" in output:
+
+                    return self.safe_float(
+
+                        output["quality_score"]
+
+                    )
+
+
+
+
+        if isinstance(telemetry,dict):
+
+            if "quality_score" in telemetry:
+
+                return self.safe_float(
+
+                    telemetry["quality_score"]
+
+                )
+
+
+
+
+        if decision=="ALLOW":
+
+            return 1.0
+
+
+        if decision=="ALLOW_WITH_MONITORING":
+
+            return 0.8
+
+
+        if decision=="REVIEW":
+
+            return 0.5
+
+
+        return 0.0
+
+
+
+
+
+    # ======================================================
+    # HELPERS
+    # ======================================================
+
+
+    def normalize_json(self,data):
+
+        if isinstance(data,str):
+
+            try:
+
+                return json.loads(data)
+
+            except:
+
+                return {
+                    "response":data
+                }
+
+
+        if isinstance(data,dict):
+
+            return data
+
+
+        return {}
+
+
+
+
+    def safe_float(self,value):
+
+        try:
+
+            return float(value)
+
+        except:
+
+            return 0.0
+
+
+
+    def safe_int(self,value):
+
+        try:
+
+            return int(value)
+
+        except:
+
+            return 0

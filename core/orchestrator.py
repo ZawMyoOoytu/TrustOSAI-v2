@@ -1,13 +1,10 @@
 import time
-from sqlalchemy.orm import Session
-from typing import Dict, Any
 
-# Engines Imports (ဆရာ့ ဖိုင်တည်ဆောက်ပုံအတိုင်း အပြည့်အစုံ ချိတ်ဆက်ထားပါသည်)
-from engines.trust_engine import TrustEngine
-from engines.risk_engine import RiskEngine
-from engines.policy_engine import PolicyEngine
+from typing import Dict, Any
+from sqlalchemy.orm import Session
+
+
 from engines.memory_engine import MemoryEngine
-from engines.conflict_engine import ConflictEngine
 from engines.governance_engine import GovernanceEngine
 from engines.router_engine import RouterEngine
 from engines.execution_engine import ExecutionEngine
@@ -15,131 +12,808 @@ from engines.telemetry_engine import TelemetryEngine
 from engines.audit_engine import AuditEngine
 from engines.cost_engine import CostEngine
 
+
+
 class RuntimeOrchestrator:
+    """
+    TrustOSAI Adaptive Execution Orchestrator v2.2
+
+
+    Pipeline:
+
+
+        Request
+
+           |
+
+           v
+
+        Memory Context
+
+           |
+
+           v
+
+        Governance Engine
+
+           |
+
+           +----------------+
+           |
+           |
+           +--> BLOCK
+           |
+           +--> REVIEW
+           |
+           +--> ALLOW_WITH_MONITORING
+           |
+           +--> ALLOW
+
+           |
+
+           v
+
+        Agent Router
+
+           |
+
+           v
+
+        Execution Engine
+
+           |
+
+           v
+
+        Cost Engine
+
+           |
+
+           v
+
+        Telemetry
+
+           |
+
+           v
+
+        Audit + Memory Feedback
+
+
+
+    """
+
+
 
     def __init__(self):
-        # Core Governance Controllers
-        self.trust_engine = TrustEngine()
-        self.risk_engine = RiskEngine()
-        self.policy_engine = PolicyEngine()
+
         self.memory_engine = MemoryEngine()
-        self.conflict_engine = ConflictEngine()
+
         self.governance_engine = GovernanceEngine()
-        
-        # Routing & Execution Core
+
         self.router_engine = RouterEngine()
+
         self.execution_engine = ExecutionEngine()
-        
-        # Telemetry, Cost & Logging Framework
-        self.audit_engine = AuditEngine()
+
         self.telemetry_engine = TelemetryEngine()
+
+        self.audit_engine = AuditEngine()
+
         self.cost_engine = CostEngine()
 
-    def execute(self, task: str, db: Session) -> Dict[str, Any]:
-        """
-        Executes the entire TrustOSAI secure pipeline matching the paper workflow.
-        Includes Early Termination Guards and Asynchronous Feedback Loops.
-        """
-        pipeline_start_time = time.time()
-        
-        # --------------------------------------------------
-        # PHASE 1: GOVERNANCE CONTROL CORE & SUB-ENGINES
-        # --------------------------------------------------
-        # Step 1: Evaluate Trust Vectors (MCDM Boundaries)
-        trust_score = self.trust_engine.evaluate(task, db)
 
-        # Step 2: Intent Risk & PII Scans
-        risk_score = self.risk_engine.analyze(task)
 
-        # Step 3: Check Static/Attribute Policies
-        policy_result = self.policy_engine.check(trust_score, risk_score)
 
-        # Step 4: Semantic Context Retrieval (L2 Memory Cache)
-        semantic_context = self.memory_engine.retrieve_context(task, db)
 
-        # Step 5: State Concurrency & Cross-Agent Conflict Detection
-        conflict = self.conflict_engine.detect(task, policy_result, db)
+    # =====================================================
+    # MAIN PIPELINE
+    # =====================================================
 
-        # Step 6: Decision Manager Consolidation
-        # Combines all vectors and determines "ALLOW" or "BLOCK"
-        governance = self.governance_engine.evaluate(
-            trust_score=trust_score,
-            risk_score=risk_score,
-            policy=policy_result,
-            conflict=conflict,
-            context=semantic_context
-        )
 
-        # --------------------------------------------------
-        # PHASE 2: DECISION SPLITTING & EARLY TERMINATION
-        # --------------------------------------------------
-        governance_status = governance.get("status", "BLOCK")
-        governance_overhead = (time.time() - pipeline_start_time) * 1000
+    def execute(
+        self,
+        task: str,
+        db: Session,
+        user_role: str = "user-default-01"
+    ) -> Dict[str, Any]:
 
-        if governance_status == "BLOCK":
-            # Early Termination Route: Audit Failure and Return Immediately
-            self.audit_engine.record(
-                db=db, task=task, trust_score=trust_score, risk_score=risk_score,
-                governance=governance, execution_result="TERMINATED BY GOVERNANCE", cost=0.0
+
+        start_time = time.perf_counter()
+
+
+
+        try:
+
+
+            # =================================================
+            # 1. Memory Retrieval
+            # =================================================
+
+
+            context = self.memory_engine.retrieve_context(
+
+                task,
+
+                db
+
             )
+
+
+
+
+            request_data = {
+
+
+                "task": task,
+
+
+                "context": context,
+
+
+                "user_role": user_role
+
+
+            }
+
+
+
+
+
+            # =================================================
+            # 2. Governance Evaluation
+            # =================================================
+
+
+            decision, governance = (
+
+                self.governance_engine.evaluate_request(
+
+                    request_data,
+
+                    db
+
+                )
+
+            )
+
+
+
+
+
+            trust_score = float(
+
+                governance.get(
+
+                    "trust_score",
+
+                    0
+
+                )
+
+            )
+
+
+
+            risk_score = float(
+
+                governance.get(
+
+                    "risk_score",
+
+                    0
+
+                )
+
+            )
+
+
+
+            conflict_score = float(
+
+                governance.get(
+
+                    "conflict_score",
+
+                    0
+
+                )
+
+            )
+
+
+
+
+
+
+            # =================================================
+            # 3. HARD BLOCK ONLY
+            # =================================================
+
+
+            if decision == "BLOCK":
+
+
+                latency = (
+
+                    time.perf_counter()
+
+                    -
+
+                    start_time
+
+                ) * 1000
+
+
+
+
+                blocked_response = {
+
+
+                    "decision":
+
+                        "BLOCK",
+
+
+
+                    "task":
+
+                        task,
+
+
+
+                    "trust_score":
+
+                        trust_score,
+
+
+
+                    "risk_score":
+
+                        risk_score,
+
+
+
+                    "conflict_score":
+
+                        conflict_score,
+
+
+
+                    "route":
+
+                        "GovernanceAgent",
+
+
+
+                    "result": {
+
+
+                        "status":
+
+                            "BLOCKED",
+
+
+
+                        "message":
+
+                            "Execution blocked by governance policy"
+
+
+                    },
+
+
+
+                    "cost": {
+
+
+                        "cost_usd":
+
+                            0.0
+
+
+                    },
+
+
+
+                    "governance":
+
+                        governance,
+
+
+
+                    "telemetry": {
+
+
+                        "latency_ms":
+
+                            round(latency,3),
+
+
+
+                        "quality_score":
+
+                            0.0
+
+
+                    }
+
+
+                }
+
+
+
+
+
+                self.audit_engine.record(
+
+                    task,
+
+                    trust_score,
+
+                    risk_score,
+
+                    governance,
+
+                    blocked_response
+
+                )
+
+
+
+                return blocked_response
+
+
+
+
+
+
+
+            # =================================================
+            # 4. ROUTING
+            # =================================================
+
+
+            route = self.router_engine.select_optimal_agent(
+
+
+
+                {
+
+
+                    "aggregated_trust":
+
+                        trust_score,
+
+
+
+                    "decision":
+
+                        decision,
+
+
+
+                    "risk_score":
+
+                        risk_score
+
+
+                },
+
+
+
+                {
+
+
+                    "task":
+
+                        task
+
+
+                }
+
+
+            )
+
+
+
+
+
+
+
+            # =================================================
+            # 5. EXECUTION
+            # =================================================
+
+
+            execution_result = (
+
+                self.execution_engine.execute(
+
+                    route,
+
+                    task
+
+                )
+
+            )
+
+
+
+
+
+
+            # =================================================
+            # 6. COST
+            # =================================================
+
+
+            raw_cost = self.cost_engine.calculate(
+
+                task
+
+            )
+
+
+
+            if isinstance(raw_cost, dict):
+
+
+                cost_usd = float(
+
+                    raw_cost.get(
+
+                        "cost_usd",
+
+                        0
+
+                    )
+
+                )
+
+
+            else:
+
+
+                cost_usd = float(
+
+                    raw_cost or 0
+
+                )
+
+
+
+
+
+            cost = {
+
+
+                "cost_usd":
+
+                    cost_usd
+
+
+            }
+
+
+
+
+
+
+
+            # =================================================
+            # 7. TELEMETRY
+            # =================================================
+
+
+            telemetry = self.telemetry_engine.collect(
+
+                task,
+
+
+                {
+
+
+                    "agent":
+
+                        route,
+
+
+
+                    "trust_score":
+
+                        trust_score,
+
+
+
+                    "risk_score":
+
+                        risk_score,
+
+
+
+                    "decision":
+
+                        decision
+
+
+                }
+
+            )
+
+
+
+
+
+
+            latency = (
+
+                time.perf_counter()
+
+                -
+
+                start_time
+
+            ) * 1000
+
+
+
+
+
+            quality_score = float(
+
+                telemetry.get(
+
+                    "quality_score",
+
+                    1.0
+
+                )
+
+            )
+
+
+
+
+
+
+
+            # =================================================
+            # 8. MEMORY UPDATE
+            # =================================================
+
+
+            self.memory_engine.update_memory(
+
+                db,
+
+                task,
+
+                execution_result,
+
+                quality_score
+
+            )
+
+
+
+
+
+
+
+            # =================================================
+            # 9. AUDIT
+            # =================================================
+
+
+            self.audit_engine.record(
+
+                task,
+
+                trust_score,
+
+                risk_score,
+
+                governance,
+
+                execution_result
+
+            )
+
+
+
+
+
+
+
+            # =================================================
+            # 10. FINAL RESPONSE
+            # =================================================
+
+
             return {
-                "decision": "BLOCK",
-                "reason": governance.get("reason", "Security Policy Anomaly"),
-                "governance_overhead_ms": governance_overhead
+
+
+
+                "decision":
+
+                    decision,
+
+
+
+                "task":
+
+                    task,
+
+
+
+                "trust_score":
+
+                    trust_score,
+
+
+
+                "risk_score":
+
+                    risk_score,
+
+
+
+                "conflict_score":
+
+                    conflict_score,
+
+
+
+                "route":
+
+                    route,
+
+
+
+                "result":
+
+                    execution_result,
+
+
+
+                "cost":
+
+                    cost,
+
+
+
+                "governance":
+
+                    governance,
+
+
+
+                "telemetry":{
+
+
+                    "latency_ms":
+
+                        round(latency,3),
+
+
+
+                    "quality_score":
+
+                        quality_score
+
+
+                },
+
+
+
+                "runtime_ms":
+
+                    round(latency,3)
+
+
+
             }
 
-        # --------------------------------------------------
-        # PHASE 3: OPTIMAL ROUTING & GRAPH COMPILATION
-        # --------------------------------------------------
-        # Step 7: Select Target Optimal Model/Agent (m*)
-        route = self.router_engine.route(governance)
 
-        # --------------------------------------------------
-        # PHASE 4: RUNTIME EXECUTOR
-        # --------------------------------------------------
-        # Step 8: Execution Graph Handling & Response Generation
-        execution_start_time = time.time()
-        execution_result = self.execution_engine.execute(route, task)
-        execution_latency = (time.time() - execution_start_time) * 1000
 
-        # --------------------------------------------------
-        # PHASE 5: POST-EXECUTION TELEMETRY & FEEDBACK LOOP
-        # --------------------------------------------------
-        # Step 9: Real-time API Cost & Token tracking
-        cost = self.cost_engine.calculate(route, task, execution_result)
 
-        # Step 10: Persistent Audit Logging (L3 Memory Vault)
-        self.audit_engine.record(
-            db=db, task=task, trust_score=trust_score, risk_score=risk_score,
-            governance=governance, execution_result=execution_result, cost=cost
-        )
 
-        # Step 11: Collect Quality Index (Q_t) and Latency Metrics
-        telemetry = self.telemetry_engine.collect(task, execution_result, execution_latency)
 
-        # Step 12: Closed-Loop Memory Update & Trust Score Mutation Trigger
-        # Propagates Q_t back to PostgreSQL to alter future Trust Engine calculations
-        self.memory_engine.update_memory(
-            db=db, task=task, response=execution_result, quality_score=telemetry.get("quality_score")
-        )
+        except Exception as e:
 
-        total_pipeline_latency = (time.time() - pipeline_start_time) * 1000
 
-        return {
-            "decision": "ALLOW",
-            "task": task,
-            "trust_score": trust_score,
-            "risk_score": risk_score,
-            "policy": policy_result,
-            "conflict": conflict,
-            "governance": governance,
-            "route": route,
-            "result": execution_result,
-            "telemetry": {
-                "governance_overhead_ms": governance_overhead,
-                "execution_latency_ms": execution_latency,
-                "total_latency_ms": total_pipeline_latency,
-                "cost_incurred": cost,
-                "quality_index": telemetry.get("quality_score")
+
+            latency = (
+
+                time.perf_counter()
+
+                -
+
+                start_time
+
+            ) * 1000
+
+
+
+
+            return {
+
+
+                "decision":
+
+                    "BLOCK",
+
+
+
+                "task":
+
+                    task,
+
+
+
+                "trust_score":
+
+                    0.0,
+
+
+
+                "risk_score":
+
+                    1.0,
+
+
+
+                "conflict_score":
+
+                    0.0,
+
+
+
+                "route":
+
+                    "RuntimeOrchestrator",
+
+
+
+                "result":{
+
+
+                    "error":
+
+                        str(e)
+
+
+                },
+
+
+
+                "cost":{
+
+
+                    "cost_usd":
+
+                        0.0
+
+
+                },
+
+
+
+                "telemetry":{
+
+
+                    "latency_ms":
+
+                        round(latency,3),
+
+
+
+                    "quality_score":
+
+                        0.0
+
+
+                }
+
+
             }
-        }

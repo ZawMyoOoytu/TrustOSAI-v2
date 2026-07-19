@@ -1,51 +1,56 @@
 import time
 
-from engines.governance_engine import GovernanceEngine
-from engines.router_engine import RouterEngine
-from engines.execution_engine import ExecutionEngine
-from engines.telemetry_engine import TelemetryEngine
-from engines.audit_engine import AuditEngine
+from typing import Dict, Any
+
+from core.orchestrator import RuntimeOrchestrator
+
 
 
 class TrustOSRuntime:
     """
-    TrustOSAI Runtime Kernel
+    TrustOSAI Runtime Kernel v2.1
 
-    Execution pipeline:
 
-    Request
-       |
-       v
-    Governance Engine
-       |
-       +---- BLOCK
-       |
-       +---- ALLOW
-                |
-                v
-          Router Engine
-                |
-                v
-          Execution Engine
-                |
-                v
-          Telemetry
-                |
-                v
-          Audit Ledger
+    Responsibilities:
+
+    - Execute Runtime Orchestration
+    - Attach Runtime Telemetry
+    - Normalize Execution Output
+    - Protect Kernel Stability
+
+
+    Pipeline:
+
+        API
+
+         |
+
+         v
+
+        Runtime Kernel
+
+         |
+
+         v
+
+        Orchestrator
+
+         |
+
+         v
+
+        Governance + Execution
+
+
     """
+
+
 
     def __init__(self):
 
-        self.governance_engine = GovernanceEngine()
+        self.orchestrator = RuntimeOrchestrator()
 
-        self.router_engine = RouterEngine()
 
-        self.execution_engine = ExecutionEngine()
-
-        self.telemetry_engine = TelemetryEngine()
-
-        self.audit_engine = AuditEngine()
 
 
 
@@ -53,170 +58,214 @@ class TrustOSRuntime:
         self,
         task: str,
         db=None
-    ):
+    ) -> Dict[str, Any]:
+
 
         start = time.perf_counter()
 
 
-        request_data = {
-            "task": task
-        }
+
+        try:
 
 
+            result = self.orchestrator.execute(
 
-        # ==================================================
-        # 1. Governance Verification Layer
-        # ==================================================
+                task,
 
-        decision, metadata = (
-            self.governance_engine.evaluate_request(
-                request_data,
                 db
+
             )
-        )
-
-
-        trust_score = (
-            metadata
-            .get(
-                "trust_context",
-                {}
-            )
-            .get(
-                "aggregated_trust",
-                0
-            )
-        )
-
-
-        risk_score = metadata.get(
-            "risk_score",
-            0
-        )
 
 
 
-        # ==================================================
-        # 2. Governance BLOCK Decision
-        # ==================================================
+            # ---------------------------------
+            # Validate Runtime Output
+            # ---------------------------------
 
-        if decision == "BLOCK":
+            if not isinstance(result, dict):
 
-            result = {
+                result = {
 
-                "agent": "GovernanceAgent",
+                    "decision":"BLOCK",
 
-                "decision": "BLOCK",
+                    "result":
+                        "Invalid runtime output"
 
-                "trust_score": trust_score,
+                }
 
-                "risk_score": risk_score,
 
-                "result": "Execution blocked",
 
-                "reason": metadata.get(
-                    "reason",
-                    "Policy violation"
-                )
+
+
+        except Exception as e:
+
+
+            latency = (
+
+                time.perf_counter()
+
+                -
+
+                start
+
+            ) * 1000
+
+
+
+            return {
+
+
+                "decision":"BLOCK",
+
+
+                "task":task,
+
+
+                "trust_score":0.0,
+
+
+                "risk_score":1.0,
+
+
+                "conflict_score":0.0,
+
+
+                "route":
+                    "RuntimeKernel",
+
+
+
+                "result":{
+
+                    "error":
+                        str(e)
+
+                },
+
+
+
+                "cost":{
+
+                    "cost_usd":0.0
+
+                },
+
+
+
+                "telemetry":{
+
+                    "latency_ms":
+                        round(latency,3),
+
+
+                    "quality_score":
+                        0.0
+
+                }
+
 
             }
 
 
 
-        # ==================================================
-        # 3. Execution ALLOW Decision
-        # ==================================================
-
-        else:
-
-            routed_model = (
-                self.router_engine.route(
-                    task
-                )
-            )
 
 
-            execution_result = (
-                self.execution_engine.execute(
-                    routed_model,
-                    task
-                )
-            )
+        latency = (
 
-
-            result = {
-
-                "agent": routed_model,
-
-                "decision": "ALLOW",
-
-                "trust_score": trust_score,
-
-                "risk_score": risk_score,
-
-                "result": execution_result
-
-            }
-
-
-
-        # ==================================================
-        # 4. Runtime Measurement
-        # ==================================================
-
-        runtime_ms = (
             time.perf_counter()
+
             -
+
             start
+
         ) * 1000
 
 
-        result["runtime_ms"] = round(
-            runtime_ms,
+
+
+
+        # ---------------------------------
+        # Runtime Metadata
+        # ---------------------------------
+
+
+        result.setdefault(
+
+            "task",
+
+            task
+
+        )
+
+
+        result.setdefault(
+
+            "decision",
+
+            "BLOCK"
+
+        )
+
+
+        result.setdefault(
+
+            "trust_score",
+
+            0.0
+
+        )
+
+
+        result.setdefault(
+
+            "risk_score",
+
+            0.0
+
+        )
+
+
+        result.setdefault(
+
+            "conflict_score",
+
+            0.0
+
+        )
+
+
+
+
+
+        telemetry = result.setdefault(
+
+            "telemetry",
+
+            {}
+
+        )
+
+
+
+        telemetry["runtime_latency_ms"] = round(
+
+            latency,
+
             3
+
         )
 
 
 
-        # ==================================================
-        # 5. Telemetry Collection
-        # ==================================================
+        result["runtime_ms"] = round(
 
-        self.telemetry_engine.collect(
-            task,
-            result
+            latency,
+
+            3
+
         )
 
 
-
-        # ==================================================
-        # 6. Audit Recording
-        # ==================================================
-
-        self.audit_engine.record(
-
-            task=task,
-
-            trust=result.get(
-                "trust_score",
-                0
-            ),
-
-            risk=result.get(
-                "risk_score",
-                0
-            ),
-
-            governance=result.get(
-                "decision",
-                "UNKNOWN"
-            ),
-
-            result=result.get(
-                "result",
-                ""
-            )
-        )
 
 
 

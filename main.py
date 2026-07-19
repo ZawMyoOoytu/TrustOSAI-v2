@@ -2,15 +2,11 @@ from fastapi import FastAPI
 
 from database.connection import Base, engine
 
+# Load all models
+import database.models
+
+
 from api.routes import router
-
-
-# ==================================================
-# Import Database Models
-# Required for SQLAlchemy table registration
-# ==================================================
-
-from database.models import Execution
 
 
 
@@ -32,19 +28,29 @@ app = FastAPI(
 
     title="TrustOSAI PostgreSQL Runtime",
 
-    version="2.0",
+    version="2.0.0",
 
-    description=(
-        "Trust-aware AI Governance Runtime "
-        "with Execution Control"
-    )
+    description="""
+TrustOSAI Adaptive AI Governance Runtime.
+
+Features:
+
+- Trust Evaluation
+- Risk Detection
+- Policy Enforcement
+- Conflict Analysis
+- Governance Decision
+- Execution Telemetry
+- Cost Attribution
+- Audit Logging
+"""
 
 )
 
 
 
 # ==================================================
-# API Router Registration
+# Register API
 # ==================================================
 
 app.include_router(
@@ -54,7 +60,7 @@ app.include_router(
 
 
 # ==================================================
-# Root Endpoint
+# Root
 # ==================================================
 
 @app.get("/")
@@ -62,18 +68,22 @@ def root():
 
     return {
 
-        "system": "TrustOSAI",
+        "system":
+            "TrustOSAI",
+
+        "architecture":
+            "Trust-aware AI Execution Control Plane",
 
         "runtime":
-            "Governance Execution Runtime",
+            "Production Governance Runtime",
 
         "database":
             "PostgreSQL",
 
         "version":
-            "2.0",
+            "2.0.0",
 
         "status":
-            "running"
+            "online"
 
     }

@@ -1,27 +1,16 @@
 from datetime import datetime
 
 
-class AuditEngine:
-    """
-    TrustOSAI Audit Engine
 
-    Responsible for:
-    - Runtime execution audit
-    - Governance decision tracking
-    - Trust/Risk traceability
-    - Compliance evidence generation
-    """
+class AuditEngine:
 
 
     def __init__(self):
 
-        self.audit_logs = []
+        self.audit_logs=[]
 
 
 
-    # =====================================================
-    # Record Execution Event
-    # =====================================================
 
     def record(
         self,
@@ -29,60 +18,61 @@ class AuditEngine:
         trust,
         risk,
         governance,
-        result
+        result,
+        execution_id=None
     ):
 
-        audit_event = {
 
-            "timestamp":
-                datetime.utcnow(),
+        event={
+
+
+            "execution_id":
+                execution_id,
+
 
             "task":
                 task,
 
+
             "trust_score":
                 trust,
+
 
             "risk_score":
                 risk,
 
+
             "governance":
                 governance,
 
+
             "result":
-                result
+                result,
+
+
+            "timestamp":
+                datetime.utcnow()
 
         }
 
 
+
         self.audit_logs.append(
-            audit_event
+
+            event
+
         )
 
 
-        return audit_event
+        return event
 
 
 
-    # =====================================================
-    # Retrieve Audit History
-    # =====================================================
 
     def get_logs(
         self,
         limit=50
     ):
 
-        return (
-            self.audit_logs[-limit:]
-        )
 
-
-
-    # =====================================================
-    # Clear Logs
-    # =====================================================
-
-    def clear(self):
-
-        self.audit_logs = []
+        return self.audit_logs[-limit:]

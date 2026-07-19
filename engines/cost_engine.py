@@ -1,40 +1,42 @@
-from typing import Dict, Any, Tuple
-from sqlalchemy.orm import Session
+from typing import Dict,Any
+
 
 
 class CostEngine:
 
+
     def __init__(self):
 
-        # =====================================================
-        # Token Pricing Matrix ($ / 1M Tokens)
-        # =====================================================
 
-        self.pricing_matrix = {
-
-            "gpt-4o": {
-
-                "input_per_1m": 5.00,
-
-                "output_per_1m": 15.00
-
-            },
+        self.pricing={
 
 
-            "llama-3-70b": {
+            "gpt-4o":
+            {
 
-                "input_per_1m": 0.59,
+                "input":5.0,
 
-                "output_per_1m": 0.79
+                "output":15.0
 
             },
 
 
-            "phi-3-mini": {
+            "llama-3-70b":
+            {
 
-                "input_per_1m": 0.05,
+                "input":0.59,
 
-                "output_per_1m": 0.10
+                "output":0.79
+
+            },
+
+
+            "phi-3-mini":
+            {
+
+                "input":0.05,
+
+                "output":0.10
 
             }
 
@@ -42,50 +44,57 @@ class CostEngine:
 
 
 
-    # =====================================================
-    # Main Runtime Interface
-    # Used by ExecutionService
-    # =====================================================
+
 
     def calculate(
         self,
-        task: str,
-        latency_ms: int = 0,
-        db: Session = None
-    ) -> Dict[str, Any]:
+        task:str,
+        model="gpt-4o"
+    )->Dict[str,Any]:
 
 
-        # -------------------------------------------------
-        # Runtime estimation
-        # Replace later with real tokenizer
-        # -------------------------------------------------
 
-        prompt_tokens = max(
+        input_tokens=max(
+
             len(task.split()),
+
             1
+
         )
 
 
-        completion_tokens = int(
-            prompt_tokens * 0.5
+        output_tokens=10
+
+
+
+        price=self.pricing.get(
+
+            model,
+
+            self.pricing["gpt-4o"]
+
         )
 
 
-        model_name = "gpt-4o"
+
+        input_cost=(
+
+            input_tokens
+            /
+            1_000_000
+
+        )*price["input"]
 
 
 
-        input_cost, total_cost, metadata = (
-            self.calculate_financial_metrics(
+        output_cost=(
 
-                model_name,
+            output_tokens
+            /
+            1_000_000
 
-                prompt_tokens,
+        )*price["output"]
 
-                completion_tokens
-
-            )
-        )
 
 
 
@@ -93,210 +102,25 @@ class CostEngine:
 
 
             "model":
-
-                model_name,
-
-
-            "prompt_tokens":
-
-                prompt_tokens,
+                model,
 
 
-            "completion_tokens":
+            "input_tokens":
+                input_tokens,
 
-                completion_tokens,
 
-
-            "input_cost":
-
-                input_cost,
+            "output_tokens":
+                output_tokens,
 
 
             "total_cost":
 
-                total_cost,
+                round(
 
+                    input_cost+output_cost,
 
-            "latency_ms":
+                    8
 
-                latency_ms,
-
-
-            "metadata":
-
-                metadata
-
-        }
-
-
-
-
-
-    # =====================================================
-    # Legacy Interface
-    # =====================================================
-
-    def compute(
-        self,
-        model: str,
-        prompt_tokens: int,
-        completion_tokens: int
-    ) -> float:
-
-
-        _, total_cost, _ = (
-
-            self.calculate_financial_metrics(
-
-                model,
-
-                prompt_tokens,
-
-                completion_tokens
-
-            )
-
-        )
-
-
-        return total_cost
-
-
-
-
-
-    # =====================================================
-    # Academic Financial Auditor
-    # =====================================================
-
-    def calculate_financial_metrics(
-        self,
-        model_name: str,
-        prompt_tokens: int,
-        completion_tokens: int
-    ) -> Tuple[float, float, Dict[str, Any]]:
-
-
-
-        rates = self.pricing_matrix.get(
-
-            model_name,
-
-            {
-
-                "input_per_1m": 0.10,
-
-                "output_per_1m": 0.20
-
-            }
-
-        )
-
-
-
-        input_cost = (
-
-            prompt_tokens
-            /
-            1_000_000
-
-        ) * rates["input_per_1m"]
-
-
-
-        output_cost = (
-
-            completion_tokens
-            /
-            1_000_000
-
-        ) * rates["output_per_1m"]
-
-
-
-        total_cost = (
-
-            input_cost
-
-            +
-
-            output_cost
-
-        )
-
-
-
-        metadata = {
-
-
-            "target_model_evaluated":
-
-                model_name,
-
-
-            "token_counts":
-
-            {
-
-                "input":
-
-                    prompt_tokens,
-
-
-                "output":
-
-                    completion_tokens,
-
-
-                "aggregate_total":
-
-                    prompt_tokens + completion_tokens
-
-            },
-
-
-
-            "financial_breakdown":
-
-            {
-
-                "input_expense_usd":
-
-                    round(input_cost, 8),
-
-
-                "output_expense_usd":
-
-                    round(output_cost, 8),
-
-
-                "total_expense_usd":
-
-                    round(total_cost, 8)
-
-            },
-
-
-
-            "cost_efficiency_tier":
-
-                (
-                    "HIGH"
-                    if total_cost < 0.0001
-                    else
-                    "PREMIUM"
                 )
 
         }
-
-
-
-        return (
-
-            input_cost,
-
-            total_cost,
-
-            metadata
-
-        )

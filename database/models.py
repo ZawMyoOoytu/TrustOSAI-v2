@@ -3,79 +3,56 @@ from datetime import datetime
 from sqlalchemy import (
     Column,
     Integer,
+    BigInteger,
     String,
     Float,
     DateTime,
-    Text
+    Text,
+    JSON
 )
 
 from database.connection import Base
 
 
 class Execution(Base):
-    """
-    TrustOSAI Execution Runtime Database Model
-
-    Stores:
-    - Agent execution requests
-    - Trust governance decisions
-    - Risk/conflict evaluation
-    - Runtime telemetry
-    - LLM usage metrics
-    """
 
     __tablename__ = "executions"
 
 
-    # =====================================
-    # Primary Identifier
-    # =====================================
-
     id = Column(
-        Integer,
+        BigInteger,
         primary_key=True,
         index=True
     )
 
 
-    # =====================================
-    # Execution Input
-    # =====================================
-
     task = Column(
-        String,
+        Text,
         nullable=False
     )
 
 
     agent = Column(
-        String,
-        nullable=True
+        Text,
+        nullable=False
     )
 
 
-    # =====================================
-    # Trust Governance Layer
-    # =====================================
-
     trust_score = Column(
         Float,
-        default=0.0,
-        nullable=False
+        default=0.0
     )
 
 
     risk_score = Column(
         Float,
-        default=0.0,
-        nullable=False
+        default=0.0
     )
 
 
     conflict_score = Column(
         Float,
-        default=0.0,
-        nullable=False
+        default=0.0
     )
 
 
@@ -85,9 +62,35 @@ class Execution(Base):
     )
 
 
-    # =====================================
-    # Execution Result
-    # =====================================
+    policy_result = Column(
+        String,
+        nullable=True
+    )
+
+
+    governance_result = Column(
+        String,
+        nullable=True
+    )
+
+
+    governance_status = Column(
+        String,
+        nullable=True
+    )
+
+
+    governance_reason = Column(
+        Text,
+        nullable=True
+    )
+
+
+    route = Column(
+        String,
+        nullable=True
+    )
+
 
     result = Column(
         Text,
@@ -95,58 +98,65 @@ class Execution(Base):
     )
 
 
-    # =====================================
-    # TrustOSAI v3 Runtime Telemetry Layer
-    # =====================================
+    execution_result = Column(
+        Text,
+        nullable=True
+    )
+
+
+    runtime_ms = Column(
+        Float,
+        default=0.0
+    )
+
 
     quality_score = Column(
         Float,
-        default=0.0,
-        nullable=False
+        default=0.0
     )
 
 
     latency_ms = Column(
         Float,
-        default=0.0,
-        nullable=False
+        default=0.0
     )
 
 
-    # =====================================
-    # LLM Cost / Usage Attribution Layer
-    # =====================================
-
     prompt_tokens = Column(
         Integer,
-        default=0,
-        nullable=False
+        default=0
     )
 
 
     completion_tokens = Column(
         Integer,
-        default=0,
-        nullable=False
+        default=0
     )
 
 
-    # =====================================
-    # Timestamp
-    # =====================================
+    cost_usd = Column(
+        Float,
+        default=0.0
+    )
+
+
+    execution_trace = Column(
+        JSON,
+        nullable=True
+    )
+
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        nullable=False
+        default=datetime.utcnow
     )
 
 
     def __repr__(self):
+
         return (
             f"<Execution "
             f"id={self.id} "
-            f"task='{self.task}' "
-            f"decision='{self.decision}' "
+            f"decision={self.decision} "
             f"trust={self.trust_score}>"
         )

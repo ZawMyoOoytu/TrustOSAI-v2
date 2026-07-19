@@ -1,81 +1,63 @@
 from datetime import datetime
-from sqlalchemy.orm import Session
+
 
 
 class TelemetryEngine:
 
+
     def __init__(self):
-        self.status = "READY"
+
+        self.events=[]
 
 
-    # =====================================================
-    # Main telemetry collector
-    # =====================================================
+
 
     def collect(
         self,
-        task: str,
-        result: dict
-    ) -> dict:
+        task:str,
+        result:dict
+    ):
 
-        telemetry_data = {
+
+        telemetry={
+
 
             "task_preview":
-                task[:50]
-                if task
-                else "",
+                task[:80],
 
 
-            "assigned_agent":
+            "agent":
                 result.get(
                     "agent",
-                    "GovernanceAgent"
+                    "unknown"
                 ),
 
 
-            "evaluated_trust":
-                float(
-                    result.get(
-                        "trust_score",
-                        0.0
-                    )
-                ),
-
-
-            "evaluated_risk":
-                float(
-                    result.get(
-                        "risk_score",
-                        0.0
-                    )
-                ),
-
-
-            "final_decision":
+            "trust_score":
                 result.get(
-                    "decision",
-                    "BLOCK"
-                ),
-
-
-            "latency_overhead_ms":
-                result.get(
-                    "runtime_ms",
+                    "trust_score",
                     0
                 ),
 
 
-            "status":
-                (
-                    "SUCCESS"
-                    if result.get("decision")
-                    in [
-                        "ALLOW",
-                        "APPROVE",
-                        "APPROVED"
-                    ]
-                    else
-                    "MITIGATED"
+            "risk_score":
+                result.get(
+                    "risk_score",
+                    0
+                ),
+
+
+            "decision":
+                result.get(
+                    "decision",
+                    "UNKNOWN"
+                ),
+
+
+            "quality_score":
+                result.get(
+                    "quality_score",
+                    0.0
                 ),
 
 
@@ -85,63 +67,22 @@ class TelemetryEngine:
         }
 
 
-        return telemetry_data
 
+        self.events.append(
 
+            telemetry
 
-    # =====================================================
-    # Runtime measurement interface
-    # Used by ExecutionService
-    # =====================================================
-
-    def measure(
-        self,
-        task: str,
-        latency_ms: int,
-        decision: str,
-        db: Session = None
-    ) -> dict:
-
-
-        telemetry = {
-
-
-            "task_preview":
-                task[:50],
-
-
-            "latency_ms":
-                latency_ms,
-
-
-            "decision":
-                decision,
-
-
-            "status":
-                (
-                    "SUCCESS"
-                    if decision
-                    in [
-                        "APPROVE",
-                        "APPROVED",
-                        "ALLOW"
-                    ]
-                    else
-                    "BLOCKED"
-                ),
-
-
-            "created_at":
-                datetime.utcnow()
-
-        }
-
-
-
-        # Future:
-        # if db:
-        #     save telemetry table
+        )
 
 
         return telemetry
+
+
+
+
+    def get_events(
+        self,
+        limit=50
+    ):
+
+        return self.events[-limit:]

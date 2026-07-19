@@ -1,42 +1,28 @@
+import time
+
+
+
 class DecisionEngine:
 
     """
     TrustOSAI Governance Decision Engine
 
 
-    Governance Decision Policy:
+    Mathematical Model:
+
+        D(t)=f(T,R,C)
 
 
-    APPROVED:
-        - High trust confidence
-        - Low security risk
-        - No execution conflict
+    T = Trust Score
+    R = Risk Score
+    C = Conflict Score
 
 
-    REVIEW:
-        - Medium trust confidence
-        - Requires governance supervision
-        - Human-in-the-loop validation
+    Output:
 
-
-    BLOCK:
-        - Critical security risk
-        - Severe conflict
-        - Unsafe execution condition
-
-
-
-    Decision Function:
-
-        D(t) = f(T(t), R(t), C(t))
-
-
-    where:
-
-        T(t) = Trust Score
-        R(t) = Risk Score
-        C(t) = Conflict Score
-
+        APPROVED
+        REVIEW
+        BLOCK
 
     """
 
@@ -45,152 +31,116 @@ class DecisionEngine:
     def __init__(self):
 
 
-        # ==========================================
-        # Trust Thresholds
-        # ==========================================
-
         self.trust_threshold_high = 80
 
         self.trust_threshold_medium = 50
 
-
-
-        # ==========================================
-        # Risk Thresholds
-        # ==========================================
 
         self.risk_threshold_high = 75
 
         self.risk_threshold_medium = 40
 
 
-
-        # ==========================================
-        # Conflict Threshold
-        # ==========================================
-
         self.conflict_threshold = 50
 
 
 
+        self.last_trace = None
+
+
+
 
 
     # =====================================================
-    # Input Normalization
+    # Normalize Input
     # =====================================================
 
-    def normalize_score(
-        self,
-        value
-    ):
-
-
-        if value is None:
-
-            return 0.0
-
+    def normalize_score(self,value):
 
 
         try:
 
-            value = float(value)
+            return float(value or 0)
 
 
-        except:
+        except Exception:
 
             return 0.0
-
-
-
-        return value
 
 
 
 
 
     # =====================================================
-    # Governance Decision Function
+    # Decision Function
     # =====================================================
 
     def decide(
         self,
         trust,
         risk,
-        conflict
+        conflict,
+        execution_id=None
     ):
 
 
+        start=time.time()
 
-        # ------------------------------------------
-        # Normalize Inputs
-        # ------------------------------------------
 
-        trust = self.normalize_score(
+
+        trust=self.normalize_score(
             trust
         )
 
 
-        risk = self.normalize_score(
+        risk=self.normalize_score(
             risk
         )
 
 
-        conflict = self.normalize_score(
+        conflict=self.normalize_score(
             conflict
         )
 
 
 
-        # ------------------------------------------
-        # Convert normalized risk/conflict
-        # 0-1 scale -> 0-100 scale
-        # ------------------------------------------
+
+        # Convert normalized values
 
         if risk <= 1:
 
-            risk = risk * 100
+            risk*=100
 
 
 
-        if conflict <= 1:
+        if conflict <=1:
 
-            conflict = conflict * 100
-
-
+            conflict*=100
 
 
 
-        # =====================================================
-        # 1. Critical Security Override
-        # =====================================================
+
+
+        # =================================================
+        # Governance Policy
+        # =================================================
+
 
         if risk >= self.risk_threshold_high:
 
 
-            return "BLOCK"
+            decision="BLOCK"
 
 
 
+        elif conflict >= self.conflict_threshold:
 
 
-        # =====================================================
-        # 2. Conflict Governance Control
-        # =====================================================
-
-        if conflict >= self.conflict_threshold:
-
-
-            return "REVIEW"
+            decision="REVIEW"
 
 
 
-
-
-        # =====================================================
-        # 3. Autonomous Trusted Execution
-        # =====================================================
-
-        if (
+        elif (
 
             trust >= self.trust_threshold_high
 
@@ -205,27 +155,97 @@ class DecisionEngine:
         ):
 
 
-            return "APPROVED"
+            decision="APPROVED"
+
+
+
+        elif trust >= self.trust_threshold_medium:
+
+
+            decision="REVIEW"
+
+
+
+        else:
+
+
+            decision="BLOCK"
 
 
 
 
 
-        # =====================================================
-        # 4. Human Governance Review Zone
-        # =====================================================
+        latency_ms=round(
 
-        if trust >= self.trust_threshold_medium:
+            (time.time()-start)*1000,
 
+            3
 
-            return "REVIEW"
-
+        )
 
 
 
 
-        # =====================================================
-        # 5. Low Trust Safety Mode
-        # =====================================================
+        self.last_trace={
 
-        return "REVIEW"
+
+            "execution_id":
+
+                execution_id,
+
+
+            "engine":
+
+                "DecisionEngine",
+
+
+            "latency_ms":
+
+                latency_ms,
+
+
+            "input":
+
+            {
+
+                "trust":
+
+                    trust,
+
+
+                "risk":
+
+                    risk,
+
+
+                "conflict":
+
+                    conflict
+
+            },
+
+
+            "decision":
+
+                decision
+
+        }
+
+
+
+
+
+        return decision
+
+
+
+
+
+    # =====================================================
+    # Trace Access
+    # =====================================================
+
+
+    def get_trace(self):
+
+        return self.last_trace

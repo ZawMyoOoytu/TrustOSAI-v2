@@ -1,30 +1,19 @@
 from typing import Dict, Any, Tuple
+import time
 
 
 
 class PolicyEngine:
-
-
     """
-    TrustOSAI Policy Governance Engine
-
+    TrustOSAI Policy Governance Engine v2.0
 
     Responsibilities:
 
-    1. Static Safety Policy Enforcement
-    2. Trust Boundary Validation
-    3. Risk Constraint Validation
-    4. RBAC Authorization Control
-    5. Governance Metadata Generation
-
-
-    Output:
-
-        policy_passed
-        policy_status
-        violations
-        governance_level
-
+    - Static Safety Enforcement
+    - Trust Boundary Validation
+    - Risk Constraint Validation
+    - RBAC Authorization
+    - Policy Trace Generation
 
     """
 
@@ -33,9 +22,9 @@ class PolicyEngine:
     def __init__(self):
 
 
-        # =====================================================
-        # Forbidden Policy Domains
-        # =====================================================
+        # ==========================================
+        # Forbidden Policy Topics
+        # ==========================================
 
         self.blacklisted_topics = [
 
@@ -53,10 +42,9 @@ class PolicyEngine:
 
 
 
-        # =====================================================
-        # Role Based Access Control Matrix
-        # =====================================================
-
+        # ==========================================
+        # Role Permission Model
+        # ==========================================
 
         self.role_permissions = {
 
@@ -103,11 +91,15 @@ class PolicyEngine:
 
 
 
+            # Runtime default user
+
             "guest":
 
             [
 
-                "read"
+                "read",
+
+                "execute"
 
             ]
 
@@ -115,10 +107,9 @@ class PolicyEngine:
 
 
 
-
-        # =====================================================
-        # Governance Thresholds
-        # =====================================================
+        # ==========================================
+        # Governance Threshold
+        # ==========================================
 
 
         self.minimum_trust = 50.0
@@ -128,15 +119,17 @@ class PolicyEngine:
 
 
 
-        self.policy_version = "v1.0.4"
+        self.policy_version = "v1.1.0"
 
 
 
 
 
-    # =====================================================
+
+
+    # ==========================================
     # Risk Normalization
-    # =====================================================
+    # ==========================================
 
 
     def normalize_risk(
@@ -145,12 +138,19 @@ class PolicyEngine:
     ) -> float:
 
 
-        risk_score = float(
-            risk_score or 0
-        )
+        try:
+
+            risk_score=float(
+                risk_score or 0
+            )
+
+        except:
+
+            risk_score=0.0
 
 
-        # Convert percentage format
+
+        # convert percentage
 
         if risk_score > 1:
 
@@ -176,29 +176,27 @@ class PolicyEngine:
 
 
 
-    # =====================================================
-    # Legacy Policy Interface
-    # =====================================================
+
+
+    # ==========================================
+    # Legacy Interface
+    # ==========================================
 
 
     def check(
-
         self,
-
         trust_score: float,
-
         risk_score: float
-
     ) -> str:
 
 
 
-        trust_score = float(
+        trust_score=float(
             trust_score or 0
         )
 
 
-        risk_score = self.normalize_risk(
+        risk_score=self.normalize_risk(
             risk_score
         )
 
@@ -224,50 +222,61 @@ class PolicyEngine:
 
 
 
-    # =====================================================
-    # Advanced Governance Constraint Engine
-    # =====================================================
+
+
+
+    # ==========================================
+    # Advanced Policy Constraint Engine
+    # ==========================================
 
 
     def check_constraints(
-
         self,
-
-        request_data: Dict[str,Any]
-
+        request_data: Dict[str,Any],
+        execution_id=None
     ) -> Tuple[bool,Dict[str,Any]]:
 
 
 
-        # -------------------------------------------------
-        # Request Extraction
-        # -------------------------------------------------
+        start_time=time.time()
 
 
-        task = request_data.get(
 
-            "task",
+        task=str(
 
-            ""
+            request_data.get(
+
+                "task",
+
+                ""
+
+            )
 
         )
 
 
-        task_content = task.lower()
+
+        task_content=task.lower()
 
 
 
-        user_role = request_data.get(
+
+
+
+        # Default runtime identity
+
+        user_role=request_data.get(
 
             "user_role",
 
-            "guest"
+            "user-default-01"
 
         )
 
 
 
-        trust_score = float(
+
+        trust_score=float(
 
             request_data.get(
 
@@ -281,7 +290,8 @@ class PolicyEngine:
 
 
 
-        risk_score = self.normalize_risk(
+
+        risk_score=self.normalize_risk(
 
             request_data.get(
 
@@ -295,14 +305,16 @@ class PolicyEngine:
 
 
 
-        violations = []
+        violations=[]
 
 
 
 
-        # =================================================
+
+
+        # ==========================================
         # 1. Static Safety Policy
-        # =================================================
+        # ==========================================
 
 
         for topic in self.blacklisted_topics:
@@ -315,13 +327,14 @@ class PolicyEngine:
 
                     {
 
-                    "type":
+                        "type":
 
-                    "STATIC_POLICY",
+                            "STATIC_POLICY",
 
-                    "message":
 
-                    f"Forbidden topic detected: {topic}"
+                        "message":
+
+                            f"Forbidden topic detected: {topic}"
 
                     }
 
@@ -331,9 +344,11 @@ class PolicyEngine:
 
 
 
-        # =================================================
-        # 2. Trust Boundary Validation
-        # =================================================
+
+
+        # ==========================================
+        # 2. Trust Boundary
+        # ==========================================
 
 
         if trust_score < self.minimum_trust:
@@ -343,14 +358,14 @@ class PolicyEngine:
 
                 {
 
-                "type":
+                    "type":
 
-                "TRUST_THRESHOLD",
+                        "TRUST_THRESHOLD",
 
 
-                "message":
+                    "message":
 
-                "Trust score below minimum governance threshold"
+                        "Trust score below minimum governance threshold"
 
                 }
 
@@ -360,9 +375,12 @@ class PolicyEngine:
 
 
 
-        # =================================================
-        # 3. Risk Boundary Validation
-        # =================================================
+
+
+
+        # ==========================================
+        # 3. Risk Boundary
+        # ==========================================
 
 
         if risk_score > self.maximum_risk:
@@ -372,14 +390,14 @@ class PolicyEngine:
 
                 {
 
-                "type":
+                    "type":
 
-                "RISK_THRESHOLD",
+                        "RISK_THRESHOLD",
 
 
-                "message":
+                    "message":
 
-                "Risk score exceeds maximum allowed level"
+                        "Risk score exceeds maximum allowed level"
 
                 }
 
@@ -389,16 +407,20 @@ class PolicyEngine:
 
 
 
-        # =================================================
+
+
+
+        # ==========================================
         # 4. RBAC Authorization
-        # =================================================
+        # ==========================================
 
 
-        required_permission = "execute"
+        required_permission="execute"
 
 
 
-        mutation_actions = [
+        mutation_actions=[
+
 
             "delete",
 
@@ -409,6 +431,7 @@ class PolicyEngine:
             "write",
 
             "allocate"
+
 
         ]
 
@@ -423,13 +446,15 @@ class PolicyEngine:
         ):
 
 
-            required_permission = "write"
+            required_permission="write"
 
 
 
 
 
-        allowed_permissions = self.role_permissions.get(
+
+
+        allowed_permissions=self.role_permissions.get(
 
             user_role,
 
@@ -448,14 +473,17 @@ class PolicyEngine:
 
                 {
 
-                "type":
 
-                "RBAC_POLICY",
+                    "type":
+
+                        "RBAC_POLICY",
 
 
-                "message":
 
-                f"Role '{user_role}' lacks '{required_permission}' permission"
+                    "message":
+
+                        f"Role '{user_role}' lacks '{required_permission}' permission"
+
 
                 }
 
@@ -465,14 +493,17 @@ class PolicyEngine:
 
 
 
-        # =================================================
+
+
+
+        # ==========================================
         # Policy Verdict
-        # =================================================
+        # ==========================================
 
 
-        policy_passed = (
+        policy_passed=(
 
-            len(violations) == 0
+            len(violations)==0
 
         )
 
@@ -483,25 +514,52 @@ class PolicyEngine:
         if policy_passed:
 
 
-            governance_level = "SAFE"
+            governance_level="SAFE"
 
 
-        elif len(violations) <= 2:
+        elif len(violations)<=2:
 
 
-            governance_level = "REVIEW"
+            governance_level="REVIEW"
 
 
         else:
 
 
-            governance_level = "BLOCK"
+            governance_level="BLOCK"
 
 
 
 
 
-        metadata = {
+
+
+
+        latency_ms=round(
+
+            (time.time()-start_time)
+
+            *
+
+            1000,
+
+            3
+
+        )
+
+
+
+
+
+
+
+        metadata={
+
+
+            "execution_id":
+
+                execution_id,
+
 
 
             "policy_passed":
@@ -514,15 +572,16 @@ class PolicyEngine:
 
                 (
 
-                "APPROVED"
+                    "APPROVED"
 
-                if policy_passed
+                    if policy_passed
 
-                else
+                    else
 
-                "REJECTED"
+                    "REJECTED"
 
                 ),
+
 
 
 
@@ -564,7 +623,72 @@ class PolicyEngine:
 
             "rule_set_version":
 
-                self.policy_version
+                self.policy_version,
+
+
+
+
+
+            "trace":
+
+            {
+
+
+                "engine":
+
+                    "PolicyEngine",
+
+
+
+                "execution_id":
+
+                    execution_id,
+
+
+
+                "latency_ms":
+
+                    latency_ms,
+
+
+
+                "output":
+
+                {
+
+
+                    "status":
+
+                        (
+
+                            "PASS"
+
+                            if policy_passed
+
+                            else
+
+                            "FAILED"
+
+                        ),
+
+
+
+                    "governance_level":
+
+                        governance_level,
+
+
+
+                    "policy_version":
+
+                        self.policy_version
+
+
+                }
+
+
+            }
+
 
         }
 

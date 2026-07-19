@@ -2,100 +2,627 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any, Tuple
 import time
 
-# ရှေ့က Engine များ၏ Advanced Functions များကို ခေါ်ယူစစ်ဆေးရန်
+
 from engines.trust_engine import TrustEngine
 from engines.risk_engine import RiskEngine
 from engines.policy_engine import PolicyEngine
 from engines.conflict_engine import ConflictEngine
 
+
+
 class GovernanceEngine:
+    """
+    TrustOSAI Adaptive Governance Engine v2.1
+
+
+    Decision Model:
+
+    Security Violation
+            |
+            BLOCK
+
+
+    Risk > threshold
+            |
+            BLOCK
+
+
+    Conflict
+            |
+            BLOCK
+
+
+    Trust:
+
+        >=80
+            ALLOW
+
+        60-80
+            ALLOW_WITH_MONITORING
+
+        40-60
+            REVIEW
+
+        <40
+            BLOCK
+
+    """
+
+
+
     def __init__(self):
-        # Base Engines Initialization
+
         self.trust_engine = TrustEngine()
+
         self.risk_engine = RiskEngine()
+
         self.policy_engine = PolicyEngine()
+
         self.conflict_engine = ConflictEngine()
 
-        # Operational Bounds (စာတမ်းပါ တရားဝင်လုံခြုံရေး Threshold သတ်မှတ်ချက်များ)
-        self.min_acceptable_trust = 65.0   # စနစ်လက်ခံနိုင်သော အနိမ့်ဆုံး Trust Score ($\tau$)
-        self.max_allowable_risk = 0.70      # စနစ်ခွင့်ပြုနိုင်သော အမြင့်ဆုံး Risk Score
 
-    def evaluate(self, trust_score: float, risk_score: float, policy: str, conflict: bool, context: Any = None) -> Dict[str, Any]:
-        """
-        Legacy Interface for the standalone legacy RuntimeOrchestrator pipeline.
-        Converts parameters to standard dictionary verdict format.
-        """
-        # Linear Check to preserve backward compatibility
-        if trust_score < self.min_acceptable_trust or risk_score > self.max_allowable_risk or policy == "FAILED" or conflict:
-            return {"status": "BLOCK", "reason": "Legacy Guardrail Threshold Breached"}
-        return {"status": "ALLOW", "reason": "Passed Legacy Thresholds"}
 
-    def evaluate_request(self, request_data: Dict[str, Any], db: Session) -> Tuple[str, Dict[str, Any]]:
-        """
-        Academic-Grade Holistic Decision Manager.
-        Executes all sub-engines sequentially and applies the Comprehensive Verification Matrix.
-        Returns: (Decision ["ALLOW" / "BLOCK"], Telemetry/Metadata Matrix)
-        """
-        start_time = time.time()
-        
-        # Step 1: Trust Engine Multi-Criteria Assessment
-        trust_context = self.trust_engine.evaluate_trust_bounds(request_data, db)
-        aggregated_trust = trust_context.get("aggregated_trust", 0.0)
+        self.high_trust = 80.0
 
-        # Step 2: Risk Engine Signature & PII Scan
-        _, normalized_risk, risk_metadata = self.risk_engine.analyze_intent(request_data)
+        self.medium_trust = 60.0
 
-        # Step 3: Policy Engine Static & RBAC Check
-        policy_passed, policy_metadata = self.policy_engine.check_constraints(request_data)
+        self.low_trust = 40.0
 
-        # Step 4: Conflict Engine Concurrency Check
-        has_conflict, conflict_metadata = self.conflict_engine.check_concurrency(request_data, db)
 
-        # --------------------------------------------------
-        # CRITICAL HOVERING DECISION MATRIX (စာတမ်းပါ သတ်မှတ်ချက် ညီမျှခြင်းများ)
-        # --------------------------------------------------
-        decision = "ALLOW"
-        reject_reason = None
-        specific_details = {}
+        self.max_allowable_risk = 0.70
 
-        # Condition A: Static Policy သို့မဟုတ် RBAC ကျိုးဖောက်မှု ရှိမရှိ စစ်ဆေးခြင်း
-        if not policy_passed:
-            decision = "BLOCK"
-            reject_reason = "Static Policy Constraints or Privilege Validation Failed"
-            specific_details = policy_metadata.get("violations")
 
-        # Condition B: Operational Risk အလွန်မြင့်မားနေခြင်း (Critical Threat Attack)
-        elif normalized_risk > self.max_allowable_risk:
-            decision = "BLOCK"
-            reject_reason = f"Security Threat Escalation: Risk Score ({normalized_risk}) exceeds maximum threshold ({self.max_allowable_risk})"
-            specific_details = risk_metadata.get("threats_identified")
 
-        # Condition C: System Core Trust ကျဆင်းနေခြင်း (Anomalous System State)
-        elif aggregated_trust < self.min_acceptable_trust:
-            decision = "BLOCK"
-            reject_reason = f"System Degradation: Aggregated Trust Score ({aggregated_trust:.2f}) dropped below Safety Threshold ({self.min_acceptable_trust})"
-            specific_details = {"system_viability": trust_context.get("is_system_viable")}
 
-        # Condition D: Operational Race Condition / State Drift ဖြစ်ပေါ်နေခြင်း
-        elif has_conflict:
-            decision = "BLOCK"
-            reject_reason = "Operational Concurrency Block: Active Race Condition Detected"
-            specific_details = conflict_metadata.get("reason")
 
-        overhead_ms = (time.time() - start_time) * 1000
+    # =====================================================
+    # Legacy Interface
+    # =====================================================
 
-        # Orchestrator နှင့် API Layer သို့ ပြန်လည်ပေးပို့မည့် Metadata Pack
-        metadata = {
-            "overhead_ms": overhead_ms,
-            "risk_score": normalized_risk,
-            "trust_context": trust_context,
-            "reason": reject_reason,
-            "details": specific_details,
-            "sub_engines_telemetry": {
-                "risk_metadata": risk_metadata,
-                "policy_metadata": policy_metadata,
-                "conflict_metadata": conflict_metadata
+    def evaluate(
+        self,
+        trust_score: float,
+        risk_score: float,
+        policy: str,
+        conflict: bool,
+        context=None
+    ) -> Dict[str, Any]:
+
+
+        if conflict:
+
+            return {
+
+                "status":"BLOCK",
+
+                "reason":"Conflict detected"
+
             }
+
+
+
+        if risk_score > self.max_allowable_risk:
+
+            return {
+
+                "status":"BLOCK",
+
+                "reason":"Risk threshold exceeded"
+
+            }
+
+
+
+        if trust_score < self.low_trust:
+
+            return {
+
+                "status":"BLOCK",
+
+                "reason":"Trust critically low"
+
+            }
+
+
+
+        return {
+
+            "status":"ALLOW",
+
+            "reason":"Governance passed"
+
         }
+
+
+
+
+
+
+
+    # =====================================================
+    # Main Governance Pipeline
+    # =====================================================
+
+
+    def evaluate_request(
+        self,
+        request_data: Dict[str,Any],
+        db: Session,
+        execution_id=None
+    ) -> Tuple[str,Dict[str,Any]]:
+
+
+        start=time.time()
+
+
+        trace=[]
+
+
+
+
+
+        # =================================================
+        # Trust Evaluation
+        # =================================================
+
+
+        trust_context = (
+
+            self.trust_engine
+            .evaluate_trust_bounds(
+
+                request_data,
+
+                db,
+
+                execution_id
+
+            )
+
+        )
+
+
+
+        trust_score=float(
+
+            trust_context.get(
+
+                "aggregated_trust",
+
+                0
+
+            )
+
+        )
+
+
+
+        trace.append({
+
+            "engine":
+
+                "TrustEngine",
+
+            "output":
+
+                trust_score
+
+        })
+
+
+
+
+
+
+
+        # =================================================
+        # Risk Evaluation
+        # =================================================
+
+
+        _, risk_score, risk_metadata = (
+
+            self.risk_engine
+            .analyze_intent(
+
+                request_data
+
+            )
+
+        )
+
+
+        risk_score=float(risk_score)
+
+
+
+        trace.append({
+
+            "engine":
+
+                "RiskEngine",
+
+            "output":
+
+                risk_score
+
+        })
+
+
+
+
+
+
+
+        # =================================================
+        # Policy Evaluation
+        # IMPORTANT:
+        # Pass Trust + Risk to Policy Engine
+        # =================================================
+
+
+        policy_request = {
+
+
+            **request_data,
+
+
+            "trust_score":
+
+                trust_score,
+
+
+            "risk_score":
+
+                risk_score
+
+
+        }
+
+
+
+        policy_passed, policy_metadata = (
+
+            self.policy_engine
+            .check_constraints(
+
+                policy_request,
+
+                execution_id
+
+            )
+
+        )
+
+
+
+        trace.append({
+
+            "engine":
+
+                "PolicyEngine",
+
+
+            "output":
+
+                (
+
+                    "PASS"
+
+                    if policy_passed
+
+                    else
+
+                    "FAILED"
+
+                )
+
+        })
+
+
+
+
+
+
+
+        # =================================================
+        # Conflict Detection
+        # =================================================
+
+
+        has_conflict, conflict_metadata = (
+
+            self.conflict_engine
+            .check_concurrency(
+
+                request_data,
+
+                db
+
+            )
+
+        )
+
+
+
+        conflict_score = (
+
+            1.0
+
+            if has_conflict
+
+            else
+
+            0.0
+
+        )
+
+
+
+        trace.append({
+
+            "engine":
+
+                "ConflictEngine",
+
+
+            "output":
+
+                (
+
+                    "CONFLICT"
+
+                    if has_conflict
+
+                    else
+
+                    "CLEAR"
+
+                )
+
+        })
+
+
+
+
+
+
+
+        # =================================================
+        # Governance Decision
+        # =================================================
+
+
+        decision="ALLOW"
+
+        reason=""
+
+        details={}
+
+
+
+
+
+        # Hard Security Controls
+
+
+        if not policy_passed:
+
+
+            decision="BLOCK"
+
+
+            reason="Policy violation"
+
+
+            details = policy_metadata.get(
+
+                "violations",
+
+                []
+
+            )
+
+
+
+        elif risk_score > self.max_allowable_risk:
+
+
+            decision="BLOCK"
+
+
+            reason="Risk threshold exceeded"
+
+
+            details=risk_metadata
+
+
+
+
+
+        elif has_conflict:
+
+
+            decision="BLOCK"
+
+
+            reason="Execution conflict"
+
+
+            details=conflict_metadata
+
+
+
+
+
+        # Adaptive Trust Layer
+
+
+        elif trust_score < self.low_trust:
+
+
+            decision="BLOCK"
+
+
+            reason="Trust critically low"
+
+
+
+
+
+        elif trust_score < self.medium_trust:
+
+
+            decision="REVIEW"
+
+
+            reason="Human review recommended"
+
+
+
+
+
+        elif trust_score < self.high_trust:
+
+
+            decision="ALLOW_WITH_MONITORING"
+
+
+            reason="Moderate trust"
+
+
+
+
+
+        else:
+
+
+            decision="ALLOW"
+
+
+            reason="High trust"
+
+
+
+
+
+
+        trace.append({
+
+            "engine":
+
+                "GovernanceDecision",
+
+
+            "output":
+
+                decision
+
+        })
+
+
+
+
+
+
+
+        latency_ms = round(
+
+            (time.time()-start)*1000,
+
+            3
+
+        )
+
+
+
+
+
+
+
+        metadata={
+
+
+            "execution_id":
+
+                execution_id,
+
+
+            "trust_score":
+
+                trust_score,
+
+
+            "risk_score":
+
+                risk_score,
+
+
+            "conflict_score":
+
+                conflict_score,
+
+
+            "decision":
+
+                decision,
+
+
+            "reason":
+
+                reason,
+
+
+            "details":
+
+                details,
+
+
+
+            "trust_context":
+
+                trust_context,
+
+
+
+            "trace":
+
+                trace,
+
+
+
+            "latency_ms":
+
+                latency_ms,
+
+
+
+            "sub_engines":
+
+
+            {
+
+
+                "risk":
+
+                    risk_metadata,
+
+
+                "policy":
+
+                    policy_metadata,
+
+
+                "conflict":
+
+                    conflict_metadata
+
+
+            }
+
+
+        }
+
+
 
         return decision, metadata

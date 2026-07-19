@@ -1,82 +1,59 @@
 from datetime import datetime
 
+from typing import Optional, Any
+
+
 from pydantic import BaseModel
 
 
 
-# ===============================
-# Request
-# ===============================
+
 
 class ExecuteRequest(BaseModel):
 
-    task: str
+    task:str
 
 
 
-# ===============================
-# Governance Response
-# ===============================
 
-class GovernanceSchema(BaseModel):
-
-    trust_score: float
-
-    risk_score: float
-
-    conflict_score: float
-
-    decision: str
-
-
-
-# ===============================
-# Runtime Telemetry
-# ===============================
-
-class TelemetrySchema(BaseModel):
-
-    latency_ms: float
-
-    quality_score: float
-
-
-
-# ===============================
-# Usage / Cost
-# ===============================
-
-class UsageSchema(BaseModel):
-
-    prompt_tokens: int
-
-    completion_tokens: int
-
-
-
-# ===============================
-# Execution Response
-# ===============================
 
 class ExecutionResponse(BaseModel):
 
-    execution_id: int
 
-    task: str
+    execution_id:int
 
-    agent: str
 
-    governance: GovernanceSchema
+    task:str
 
-    runtime: TelemetrySchema
 
-    usage: UsageSchema
+    agent:Optional[str]
 
-    result: str
 
-    created_at: datetime
+    trust_score:float
+
+
+    risk_score:float
+
+
+    conflict_score:float
+
+
+    decision:str
+
+
+    result:Optional[str]
+
+
+    quality_score:float
+
+
+    latency_ms:float
+
+
+    created_at:datetime
+
 
 
     class Config:
 
-        from_attributes = True
+        from_attributes=True
