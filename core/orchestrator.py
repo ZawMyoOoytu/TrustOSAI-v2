@@ -16,11 +16,10 @@ from engines.cost_engine import CostEngine
 
 class RuntimeOrchestrator:
     """
-    TrustOSAI Adaptive Execution Orchestrator v2.2
+    TrustOSAI Adaptive Execution Orchestrator v2.3
 
 
-    Pipeline:
-
+    Execution Pipeline:
 
         Request
 
@@ -35,19 +34,6 @@ class RuntimeOrchestrator:
            v
 
         Governance Engine
-
-           |
-
-           +----------------+
-           |
-           |
-           +--> BLOCK
-           |
-           +--> REVIEW
-           |
-           +--> ALLOW_WITH_MONITORING
-           |
-           +--> ALLOW
 
            |
 
@@ -80,6 +66,28 @@ class RuntimeOrchestrator:
         Audit + Memory Feedback
 
 
+    Execution Identity Flow:
+
+        execution_id
+
+              |
+
+              v
+
+        Runtime
+
+              |
+
+              v
+
+        ExecutionEngine
+
+              |
+
+              v
+
+        Trace
+
 
     """
 
@@ -106,7 +114,7 @@ class RuntimeOrchestrator:
 
 
     # =====================================================
-    # MAIN PIPELINE
+    # MAIN EXECUTION PIPELINE
     # =====================================================
 
 
@@ -114,6 +122,7 @@ class RuntimeOrchestrator:
         self,
         task: str,
         db: Session,
+        execution_id=None,
         user_role: str = "user-default-01"
     ) -> Dict[str, Any]:
 
@@ -126,7 +135,7 @@ class RuntimeOrchestrator:
 
 
             # =================================================
-            # 1. Memory Retrieval
+            # 1. MEMORY
             # =================================================
 
 
@@ -140,27 +149,21 @@ class RuntimeOrchestrator:
 
 
 
-
             request_data = {
-
 
                 "task": task,
 
-
                 "context": context,
 
-
                 "user_role": user_role
-
 
             }
 
 
 
 
-
             # =================================================
-            # 2. Governance Evaluation
+            # 2. GOVERNANCE
             # =================================================
 
 
@@ -178,8 +181,6 @@ class RuntimeOrchestrator:
 
 
 
-
-
             trust_score = float(
 
                 governance.get(
@@ -193,7 +194,6 @@ class RuntimeOrchestrator:
             )
 
 
-
             risk_score = float(
 
                 governance.get(
@@ -205,7 +205,6 @@ class RuntimeOrchestrator:
                 )
 
             )
-
 
 
             conflict_score = float(
@@ -224,9 +223,8 @@ class RuntimeOrchestrator:
 
 
 
-
             # =================================================
-            # 3. HARD BLOCK ONLY
+            # 3. BLOCK
             # =================================================
 
 
@@ -237,16 +235,18 @@ class RuntimeOrchestrator:
 
                     time.perf_counter()
 
-                    -
-
-                    start_time
+                    - start_time
 
                 ) * 1000
 
 
 
-
                 blocked_response = {
+
+
+                    "execution_id":
+
+                        execution_id,
 
 
                     "decision":
@@ -254,11 +254,9 @@ class RuntimeOrchestrator:
                         "BLOCK",
 
 
-
                     "task":
 
                         task,
-
 
 
                     "trust_score":
@@ -266,11 +264,9 @@ class RuntimeOrchestrator:
                         trust_score,
 
 
-
                     "risk_score":
 
                         risk_score,
-
 
 
                     "conflict_score":
@@ -278,41 +274,36 @@ class RuntimeOrchestrator:
                         conflict_score,
 
 
-
                     "route":
 
                         "GovernanceAgent",
 
 
+                    "result":
 
-                    "result": {
-
+                    {
 
                         "status":
 
                             "BLOCKED",
 
 
-
                         "message":
 
                             "Execution blocked by governance policy"
 
-
                     },
 
 
+                    "cost":
 
-                    "cost": {
-
+                    {
 
                         "cost_usd":
 
                             0.0
 
-
                     },
-
 
 
                     "governance":
@@ -320,27 +311,22 @@ class RuntimeOrchestrator:
                         governance,
 
 
+                    "telemetry":
 
-                    "telemetry": {
-
+                    {
 
                         "latency_ms":
 
                             round(latency,3),
 
 
-
                         "quality_score":
 
                             0.0
 
-
                     }
 
-
                 }
-
-
 
 
 
@@ -366,8 +352,6 @@ class RuntimeOrchestrator:
 
 
 
-
-
             # =================================================
             # 4. ROUTING
             # =================================================
@@ -375,15 +359,11 @@ class RuntimeOrchestrator:
 
             route = self.router_engine.select_optimal_agent(
 
-
-
                 {
-
 
                     "aggregated_trust":
 
                         trust_score,
-
 
 
                     "decision":
@@ -391,26 +371,20 @@ class RuntimeOrchestrator:
                         decision,
 
 
-
                     "risk_score":
 
                         risk_score
 
-
                 },
 
 
-
                 {
-
 
                     "task":
 
                         task
 
-
                 }
-
 
             )
 
@@ -419,9 +393,8 @@ class RuntimeOrchestrator:
 
 
 
-
             # =================================================
-            # 5. EXECUTION
+            # 5. EXECUTION ENGINE
             # =================================================
 
 
@@ -431,11 +404,14 @@ class RuntimeOrchestrator:
 
                     route,
 
-                    task
+                    task,
+
+                    execution_id=execution_id
 
                 )
 
             )
+
 
 
 
@@ -454,9 +430,7 @@ class RuntimeOrchestrator:
             )
 
 
-
             if isinstance(raw_cost, dict):
-
 
                 cost_usd = float(
 
@@ -470,9 +444,7 @@ class RuntimeOrchestrator:
 
                 )
 
-
             else:
-
 
                 cost_usd = float(
 
@@ -482,19 +454,13 @@ class RuntimeOrchestrator:
 
 
 
-
-
             cost = {
-
 
                 "cost_usd":
 
                     cost_usd
 
-
             }
-
-
 
 
 
@@ -509,14 +475,11 @@ class RuntimeOrchestrator:
 
                 task,
 
-
                 {
-
 
                     "agent":
 
                         route,
-
 
 
                     "trust_score":
@@ -524,17 +487,14 @@ class RuntimeOrchestrator:
                         trust_score,
 
 
-
                     "risk_score":
 
                         risk_score,
 
 
-
                     "decision":
 
                         decision
-
 
                 }
 
@@ -542,20 +502,13 @@ class RuntimeOrchestrator:
 
 
 
-
-
-
             latency = (
 
                 time.perf_counter()
 
-                -
-
-                start_time
+                - start_time
 
             ) * 1000
-
-
 
 
 
@@ -565,13 +518,17 @@ class RuntimeOrchestrator:
 
                     "quality_score",
 
-                    1.0
+                    execution_result.get(
+
+                        "quality_score_qt",
+
+                        1.0
+
+                    )
 
                 )
 
             )
-
-
 
 
 
@@ -593,8 +550,6 @@ class RuntimeOrchestrator:
                 quality_score
 
             )
-
-
 
 
 
@@ -626,12 +581,16 @@ class RuntimeOrchestrator:
 
 
             # =================================================
-            # 10. FINAL RESPONSE
+            # FINAL RESPONSE
             # =================================================
 
 
             return {
 
+
+                "execution_id":
+
+                    execution_id,
 
 
                 "decision":
@@ -639,11 +598,9 @@ class RuntimeOrchestrator:
                     decision,
 
 
-
                 "task":
 
                     task,
-
 
 
                 "trust_score":
@@ -651,11 +608,9 @@ class RuntimeOrchestrator:
                     trust_score,
 
 
-
                 "risk_score":
 
                     risk_score,
-
 
 
                 "conflict_score":
@@ -663,11 +618,9 @@ class RuntimeOrchestrator:
                     conflict_score,
 
 
-
                 "route":
 
                     route,
-
 
 
                 "result":
@@ -675,11 +628,9 @@ class RuntimeOrchestrator:
                     execution_result,
 
 
-
                 "cost":
 
                     cost,
-
 
 
                 "governance":
@@ -687,30 +638,25 @@ class RuntimeOrchestrator:
                     governance,
 
 
+                "telemetry":
 
-                "telemetry":{
-
+                {
 
                     "latency_ms":
 
                         round(latency,3),
 
 
-
                     "quality_score":
 
                         quality_score
 
-
                 },
-
 
 
                 "runtime_ms":
 
                     round(latency,3)
-
-
 
             }
 
@@ -722,21 +668,22 @@ class RuntimeOrchestrator:
         except Exception as e:
 
 
-
             latency = (
 
                 time.perf_counter()
 
-                -
-
-                start_time
+                - start_time
 
             ) * 1000
 
 
 
-
             return {
+
+
+                "execution_id":
+
+                    execution_id,
 
 
                 "decision":
@@ -744,11 +691,9 @@ class RuntimeOrchestrator:
                     "BLOCK",
 
 
-
                 "task":
 
                     task,
-
 
 
                 "trust_score":
@@ -756,11 +701,9 @@ class RuntimeOrchestrator:
                     0.0,
 
 
-
                 "risk_score":
 
                     1.0,
-
 
 
                 "conflict_score":
@@ -768,52 +711,46 @@ class RuntimeOrchestrator:
                     0.0,
 
 
-
                 "route":
 
                     "RuntimeOrchestrator",
 
 
+                "result":
 
-                "result":{
-
+                {
 
                     "error":
 
                         str(e)
 
-
                 },
 
 
+                "cost":
 
-                "cost":{
-
+                {
 
                     "cost_usd":
 
                         0.0
 
-
                 },
 
 
+                "telemetry":
 
-                "telemetry":{
-
+                {
 
                     "latency_ms":
 
                         round(latency,3),
 
 
-
                     "quality_score":
 
                         0.0
 
-
                 }
-
 
             }

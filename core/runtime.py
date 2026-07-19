@@ -8,12 +8,13 @@ from core.orchestrator import RuntimeOrchestrator
 
 class TrustOSRuntime:
     """
-    TrustOSAI Runtime Kernel v2.1
+    TrustOSAI Runtime Kernel v2.2
 
 
     Responsibilities:
 
     - Execute Runtime Orchestration
+    - Propagate Execution Identity
     - Attach Runtime Telemetry
     - Normalize Execution Output
     - Protect Kernel Stability
@@ -22,6 +23,12 @@ class TrustOSRuntime:
     Pipeline:
 
         API
+
+         |
+
+         v
+
+        ExecutionService
 
          |
 
@@ -39,11 +46,10 @@ class TrustOSRuntime:
 
          v
 
-        Governance + Execution
+        Governance + Execution Engine
 
 
     """
-
 
 
     def __init__(self):
@@ -52,12 +58,16 @@ class TrustOSRuntime:
 
 
 
+    # =====================================================
+    # RUNTIME EXECUTION
+    # =====================================================
 
 
     def execute(
         self,
         task: str,
-        db=None
+        db=None,
+        execution_id=None
     ) -> Dict[str, Any]:
 
 
@@ -72,7 +82,9 @@ class TrustOSRuntime:
 
                 task,
 
-                db
+                db,
+
+                execution_id=execution_id
 
             )
 
@@ -82,11 +94,12 @@ class TrustOSRuntime:
             # Validate Runtime Output
             # ---------------------------------
 
+
             if not isinstance(result, dict):
 
                 result = {
 
-                    "decision":"BLOCK",
+                    "decision": "BLOCK",
 
                     "result":
                         "Invalid runtime output"
@@ -104,9 +117,7 @@ class TrustOSRuntime:
 
                 time.perf_counter()
 
-                -
-
-                start
+                - start
 
             ) * 1000
 
@@ -115,47 +126,48 @@ class TrustOSRuntime:
             return {
 
 
-                "decision":"BLOCK",
+                "decision": "BLOCK",
 
 
-                "task":task,
+                "task": task,
 
 
-                "trust_score":0.0,
+                "execution_id": execution_id,
 
 
-                "risk_score":1.0,
+                "trust_score": 0.0,
 
 
-                "conflict_score":0.0,
+                "risk_score": 1.0,
 
 
-                "route":
-                    "RuntimeKernel",
+                "conflict_score": 0.0,
 
 
-
-                "result":{
-
-                    "error":
-                        str(e)
-
-                },
+                "route": "RuntimeKernel",
 
 
 
-                "cost":{
+                "result": {
 
-                    "cost_usd":0.0
+                    "error": str(e)
 
                 },
 
 
 
-                "telemetry":{
+                "cost": {
+
+                    "cost_usd": 0.0
+
+                },
+
+
+
+                "telemetry": {
 
                     "latency_ms":
-                        round(latency,3),
+                        round(latency, 3),
 
 
                     "quality_score":
@@ -174,11 +186,10 @@ class TrustOSRuntime:
 
             time.perf_counter()
 
-            -
-
-            start
+            - start
 
         ) * 1000
+
 
 
 
@@ -198,6 +209,17 @@ class TrustOSRuntime:
         )
 
 
+
+        result.setdefault(
+
+            "execution_id",
+
+            execution_id
+
+        )
+
+
+
         result.setdefault(
 
             "decision",
@@ -205,6 +227,7 @@ class TrustOSRuntime:
             "BLOCK"
 
         )
+
 
 
         result.setdefault(
@@ -216,6 +239,7 @@ class TrustOSRuntime:
         )
 
 
+
         result.setdefault(
 
             "risk_score",
@@ -223,6 +247,7 @@ class TrustOSRuntime:
             0.0
 
         )
+
 
 
         result.setdefault(
@@ -247,6 +272,7 @@ class TrustOSRuntime:
 
 
 
+
         telemetry["runtime_latency_ms"] = round(
 
             latency,
@@ -264,7 +290,6 @@ class TrustOSRuntime:
             3
 
         )
-
 
 
 
