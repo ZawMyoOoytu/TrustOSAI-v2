@@ -1,238 +1,448 @@
-# TrustOSAI v2
+# TrustOSAI v2.0
 
-### Adaptive AI Governance Runtime for Trust-Aware Autonomous Systems
+## Adaptive AI Governance Runtime Platform
 
-TrustOSAI v2 is a next-generation AI governance runtime designed to provide **trust-aware execution**, **policy enforcement**, **risk assessment**, **execution auditing**, and **adaptive decision-making** for autonomous AI agents and large language model (LLM) applications.
-
-The platform introduces a unified governance architecture that continuously evaluates trust throughout the execution lifecycle while providing transparent monitoring, explainable decisions, and policy-driven control.
-
----
-
-## Key Features
-
-* Adaptive Trust Evaluation Engine
-* Policy-Based AI Governance
-* Execution Runtime with Trust Scoring
-* Risk Assessment Engine
-* Execution Audit Logging
-* Memory-Aware Decision Support
-* PostgreSQL-Based Execution Database
-* FastAPI REST API
-* Interactive API Documentation (Swagger/OpenAPI)
-* Modular Runtime Architecture
-* Real-Time Execution Monitoring
-* AI Agent Management
-* Metrics & Analytics Dashboard
-* IEEE Research-Oriented Architecture
+![TrustOSAI Banner](https://img.shields.io/badge/TrustOSAI-AI%20Governance%20Runtime-blue)
+![Python](https://img.shields.io/badge/Python-3.14+-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688)
+![License](https://img.shields.io/badge/Status-Research%20%2F%20Development-orange)
 
 ---
 
-## System Architecture
+## Overview
+
+**TrustOSAI** is an adaptive AI governance runtime platform designed to provide **trust-aware execution control, risk evaluation, policy enforcement, telemetry monitoring, and auditability for autonomous AI agents.**
+
+Unlike traditional AI application frameworks that directly send user requests to language models, TrustOSAI introduces a governance layer between users and AI execution.
+
+The platform evaluates AI requests before execution by analyzing:
+
+* Trust score
+* Risk level
+* Policy compliance
+* Execution conflict
+* Model suitability
+* Runtime telemetry
+* Cost attribution
+
+The goal is to enable safer, more transparent, and accountable deployment of autonomous AI systems.
+
+---
+
+# Core Concept
+
+Traditional AI execution:
 
 ```
-                    +----------------------+
-                    |   Client / Web UI    |
-                    +----------+-----------+
-                               |
-                               v
-                    +----------------------+
-                    |     API Gateway      |
-                    +----------+-----------+
-                               |
-          +--------------------+--------------------+
-          |                    |                    |
-          v                    v                    v
- +----------------+   +----------------+   +----------------+
- | Policy Engine  |   | Trust Engine   |   | Risk Engine    |
- +----------------+   +----------------+   +----------------+
-          |                    |                    |
-          +--------------------+--------------------+
-                               |
-                               v
-                    +----------------------+
-                    | Execution Runtime    |
-                    +----------+-----------+
-                               |
-                               v
-                    +----------------------+
-                    | PostgreSQL Database  |
-                    +----------------------+
+User Request
+      |
+      v
+   AI Model
+      |
+      v
+  Response
+```
+
+TrustOSAI execution model:
+
+```
+User Request
+
+      |
+      v
+
+Governance Evaluation
+
+      |
+      v
+
+Trust / Risk Analysis
+
+      |
+      v
+
+Policy Decision
+
+      |
+      v
+
+Agent Routing
+
+      |
+      v
+
+AI Execution
+
+      |
+      v
+
+Telemetry + Audit Feedback
 ```
 
 ---
 
-## Technology Stack
+# Key Features
 
-| Component       | Technology        |
-| --------------- | ----------------- |
-| Backend         | FastAPI           |
-| Language        | Python            |
-| Database        | PostgreSQL        |
-| ORM             | SQLAlchemy        |
-| Validation      | Pydantic          |
-| API Docs        | Swagger / OpenAPI |
-| Server          | Uvicorn           |
-| Version Control | Git & GitHub      |
+## 1. Trust Evaluation Engine
+
+TrustOSAI evaluates execution reliability using adaptive trust metrics.
+
+Capabilities:
+
+* Trust score calculation
+* Historical execution feedback
+* Quality measurement
+* Decision confidence analysis
+
+Example:
+
+```
+Trust Score: 85.4%
+
+Decision:
+ALLOW_WITH_MONITORING
+```
 
 ---
 
-## Project Structure
+# 2. AI Governance Decision Engine
+
+Every AI request passes through governance evaluation.
+
+Supported decisions:
 
 ```
-TrustOSAI-v2/
+ALLOW
 
-├── api/
-├── core/
-├── database/
-├── models/
-├── repository/
-├── services/
-├── schemas/
-├── scripts/
-├── docs/
-├── tests/
+ALLOW_WITH_MONITORING
+
+REVIEW
+
+BLOCK
+```
+
+The governance layer enables controlled AI deployment in sensitive environments.
+
+---
+
+# 3. Risk Detection
+
+TrustOSAI analyzes execution risk before allowing autonomous execution.
+
+Evaluated factors:
+
+* Request risk
+* Policy constraints
+* Execution conflicts
+* Historical behavior
+
+---
+
+# 4. Adaptive Agent Routing
+
+The runtime dynamically selects execution agents based on:
+
+* Trust score
+* Risk level
+* Runtime performance
+* Cost efficiency
+
+Example:
+
+```
+Low Risk Task
+      |
+      v
+Lightweight Model
+
+
+High Risk Task
+      |
+      v
+Advanced Model + Monitoring
+```
+
+---
+
+# 5. Execution Trace & Audit System
+
+Every execution generates a trace record.
+
+Example:
+
+```json
+{
+ "execution_id":48,
+ "agent":"llama-3-70b",
+ "decision":"REVIEW",
+ "trust_score":55.84,
+ "quality_score":0.85,
+ "latency_ms":382
+}
+```
+
+Tracked information:
+
+* Execution identity
+* Agent selection
+* Governance decision
+* Runtime latency
+* Quality metrics
+* Token usage
+* Cost information
+
+---
+
+# 6. Runtime Telemetry
+
+TrustOSAI collects execution intelligence:
+
+Metrics:
+
+* Latency
+* Quality score
+* Token usage
+* Cost
+* Model performance
+
+Telemetry enables continuous optimization of AI operations.
+
+---
+
+# 7. Cost Attribution
+
+The runtime tracks AI execution cost.
+
+Supported metrics:
+
+* Token consumption
+* Execution cost
+* Model usage
+* Runtime efficiency
+
+---
+
+# System Architecture
+
+```
+                 TrustOSAI Runtime
+
++-------------------------------------+
+
+              API Layer
+
++-------------------------------------+
+
+              Runtime Kernel
+
++-------------------------------------+
+
+          Orchestration Engine
+
++-------------------------------------+
+
+ Governance | Trust | Risk | Policy
+
++-------------------------------------+
+
+ Agent Router
+
++-------------------------------------+
+
+ Execution Engine
+
++-------------------------------------+
+
+ Telemetry + Audit + Memory
+
++-------------------------------------+
+
+              Database
+
++-------------------------------------+
+```
+
+---
+
+# Project Structure
+
+```
+TrustOSAI-v2
+
+├── api
+│   ├── execution.py
+│   ├── executions.py
+│   ├── health.py
+│   └── policy.py
+│
+├── core
+│   ├── runtime.py
+│   └── orchestrator.py
+│
+├── engines
+│   ├── execution_engine.py
+│   ├── governance_engine.py
+│   ├── trust_engine.py
+│   ├── risk_engine.py
+│   ├── router_engine.py
+│   ├── telemetry_engine.py
+│   └── cost_engine.py
+│
+├── database
+│   ├── models.py
+│   ├── repository.py
+│   └── session.py
+│
+├── schemas
+│
+├── services
+│   └── execution_service.py
+│
+├── tests
+│
 ├── main.py
-├── requirements.txt
-└── README.md
+├── Dockerfile
+└── requirements.txt
 ```
 
 ---
 
-## Installation
+# API Example
 
-Clone the repository
+## Execute AI Task
 
-```bash
-git clone https://github.com/ZawMyoOoytu/TrustOSAI-v2.git
+### Request
+
+```http
+POST /api/execution/
 ```
 
-Move into the project
+Body:
 
-```bash
-cd TrustOSAI-v2
+```json
+{
+ "task":"Analyze security risk of autonomous AI agent"
+}
 ```
 
-Create a virtual environment
+Response:
 
-```bash
-python -m venv .venv
-```
-
-Activate it
-
-Windows
-
-```bash
-.venv\Scripts\activate
-```
-
-Linux / macOS
-
-```bash
-source .venv/bin/activate
-```
-
-Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-Run the server
-
-```bash
-uvicorn main:app --reload
+```json
+{
+ "execution_id":48,
+ "agent":"llama-3-70b",
+ "trust_score":55.84,
+ "risk_score":0,
+ "decision":"REVIEW",
+ "quality_score":0.85,
+ "latency_ms":382
+}
 ```
 
 ---
 
-## API Documentation
+# Technology Stack
 
-Once the server is running:
+Backend:
 
-* Swagger UI: `http://127.0.0.1:8000/docs`
-* ReDoc: `http://127.0.0.1:8000/redoc`
+* Python
+* FastAPI
+* SQLAlchemy
+* PostgreSQL / SQLite
 
----
+AI Runtime:
 
-## Core Modules
-
-* Trust Engine
-* Policy Engine
-* Risk Engine
+* Trust Evaluation Engine
+* Governance Engine
 * Execution Engine
-* Metrics Repository
-* Agent Runtime
-* Governance Controller
-* Execution Repository
-* Audit Logger
+* Telemetry Engine
+
+Infrastructure:
+
+* Docker
+* REST API
 
 ---
 
-## Research Objectives
+# Development Status
 
-TrustOSAI aims to solve several key challenges in modern AI systems:
+Current Version:
 
-* Dynamic trust evaluation
-* AI governance automation
-* Policy-driven execution
-* Explainable AI runtime
-* Runtime safety enforcement
-* Trust-aware autonomous agents
-* Scalable enterprise AI deployment
+```
+TrustOSAI v2.0 Runtime Stable
+```
 
----
+Implemented:
 
-## Future Roadmap
-
-* Web Dashboard
-* Multi-Agent Collaboration
-* Distributed Runtime
-* Federated Trust Engine
-* Policy Compiler
-* Plugin Framework
-* Kubernetes Deployment
-* Cloud Native Runtime
-* Enterprise Authentication
-* Billing & Usage Analytics
+✅ AI Governance Pipeline
+✅ Trust Evaluation
+✅ Risk Analysis
+✅ Policy Decision
+✅ Agent Routing
+✅ Execution Trace
+✅ Telemetry Collection
+✅ Cost Tracking
+✅ Database Persistence
 
 ---
 
-## Research
+# Roadmap
 
-This project supports ongoing research in:
+## v2.1 — Product Foundation
 
-* AI Governance
-* Trustworthy AI
-* Autonomous Agents
-* AI Runtime Systems
-* Explainable AI
-* Adaptive Trust Modeling
+* Improved dashboard visualization
+* Real-time execution streaming
+* Execution replay
+* Advanced analytics
+
+## v2.5 — AI Platform
+
+* Multi-model provider support
+* API key management
+* User authentication
+* Usage tracking
+
+## v3.0 — Enterprise AI Governance Platform
+
+* Organization management
+* Billing system
+* Enterprise deployment
+* Compliance reporting
 
 ---
 
-## License
+# Research Direction
 
-This project is released under the MIT License.
+TrustOSAI explores the development of:
+
+* Trust-aware autonomous AI systems
+* Adaptive AI governance
+* Policy-controlled AI execution
+* Transparent AI operations
 
 ---
 
-## Author
+# Vision
+
+The vision of TrustOSAI is to create a runtime control layer that enables organizations to deploy autonomous AI systems with:
+
+* Higher trust
+* Better accountability
+* Safer execution
+* Transparent decision processes
+
+---
+
+# Author
 
 **Zaw Myo Oo**
 
-Master's Research Student
-
-Yangon Technological University (YTU)
+TrustOSAI Project
 
 ---
 
-## Citation
+# License
 
-If you use this project in your research, please cite the associated TrustOSAI publication once it becomes available.
+This project is currently under active research and development.
 
----
-
-### Star the Repository
-
-If you find this project useful, please consider giving it a ⭐ on GitHub to support future development.
+License information will be updated in future releases.
