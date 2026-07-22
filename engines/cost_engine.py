@@ -1,126 +1,128 @@
-from typing import Dict,Any
-
-
-
 class CostEngine:
 
 
-    def __init__(self):
+    MODEL_PRICING = {
+
+        "gpt-4o": {
+
+            "input":0.005,
+            "output":0.015
+
+        },
 
 
-        self.pricing={
+        "claude-3.5-sonnet":{
+
+            "input":0.003,
+            "output":0.015
+
+        },
 
 
-            "gpt-4o":
-            {
+        "gemini-pro":{
 
-                "input":5.0,
+            "input":0.0005,
+            "output":0.0015
 
-                "output":15.0
-
-            },
+        },
 
 
-            "llama-3-70b":
-            {
+        "local":{
 
-                "input":0.59,
-
-                "output":0.79
-
-            },
-
-
-            "phi-3-mini":
-            {
-
-                "input":0.05,
-
-                "output":0.10
-
-            }
+            "input":0,
+            "output":0
 
         }
 
 
+    }
 
 
 
     def calculate(
         self,
-        task:str,
-        model="gpt-4o"
-    )->Dict[str,Any]:
+        model="local",
+        prompt_tokens=0,
+        completion_tokens=0
+    ):
 
 
-
-        input_tokens=max(
-
-            len(task.split()),
-
-            1
-
-        )
-
-
-        output_tokens=10
-
-
-
-        price=self.pricing.get(
+        pricing = self.MODEL_PRICING.get(
 
             model,
 
-            self.pricing["gpt-4o"]
+            self.MODEL_PRICING["local"]
 
         )
 
 
 
-        input_cost=(
+        input_cost = (
 
-            input_tokens
-            /
-            1_000_000
+            prompt_tokens / 1000
 
-        )*price["input"]
+        ) * pricing["input"]
 
 
 
-        output_cost=(
+        output_cost = (
 
-            output_tokens
-            /
-            1_000_000
+            completion_tokens / 1000
 
-        )*price["output"]
+        ) * pricing["output"]
 
+
+
+
+        total = (
+
+            input_cost
+
+            +
+
+            output_cost
+
+        )
 
 
 
         return {
 
 
+            "cost_usd":
+
+                round(total,6),
+
+
+            "currency":
+
+                "USD",
+
+
             "model":
+
                 model,
 
 
-            "input_tokens":
-                input_tokens,
+            "tokens":
+
+            {
+
+                "input":
+
+                    prompt_tokens,
 
 
-            "output_tokens":
-                output_tokens,
+                "output":
+
+                    completion_tokens,
 
 
-            "total_cost":
+                "total":
 
-                round(
+                    prompt_tokens + completion_tokens
 
-                    input_cost+output_cost,
+            }
 
-                    8
-
-                )
 
         }

@@ -1,61 +1,167 @@
 import time
-import random
+
 from datetime import datetime
+
 from typing import Dict, Any
+
+
+from engines.model_router import ModelRouter
+
+
 
 
 
 class ExecutionEngine:
 
+
     """
-    TrustOSAI Runtime Execution Engine
+    =====================================================
+    TrustOSAI Runtime Execution Engine v4.0
+    =====================================================
+
+
+    Enterprise Execution Layer
 
 
     Responsibilities:
 
-    - Model execution simulation
-    - Runtime latency measurement
-    - Quality telemetry
-    - Token estimation
-    - Execution trace generation
+    - Model execution abstraction
+    - Provider routing
+    - BYOK API key propagation
+    - Token telemetry
+    - Quality measurement
+    - Runtime trace
+    - Replay compatibility
+
+
+    Pipeline:
+
+
+        RouterEngine
+
+             |
+
+             v
+
+
+        ExecutionEngine
+
+             |
+
+             v
+
+
+        ModelRouter
+
+
+             |
+
+    -------------------
+
+    Local LLM
+
+    OpenAI
+
+    Gemini
+
+    Ollama
+
+    vLLM
+
+    -------------------
+
 
     """
 
+
+
+
+
+    # =====================================================
+    # INIT
+    # =====================================================
 
 
     def __init__(self):
 
 
-        self.mock_responses = {
-
-
-            "gpt-4o": [
-
-                "Comprehensive Synthesis: Based on high-fidelity analytical logic, the requested execution pipeline has finalized state resolution with 98% convergence.",
-
-                "Strategic Resolution Matrix compiled successfully. Cross-agent structural dependencies have been audited and executed within normal bounds."
-
-            ],
+        self.model_router = ModelRouter()
 
 
 
-            "llama-3-70b": [
-
-                "Standard Output Loop: Task processing completed efficiently using Llama-3 sub-graph weights.",
-
-                "Text synthesis finalized. Content structure matches target context schemas completely."
-
-            ],
+        self.model_profiles = {
 
 
 
-            "phi-3-mini": [
+            "gpt-4o":
 
-                "Mini-Graph Processed: Simple execution path confirmed.",
+            {
 
-                "Task completed via localized edge execution loop."
+                "provider":
 
-            ]
+                    "openai",
+
+
+                "quality":
+
+                    0.92
+
+            },
+
+
+
+
+            "llama-3-70b":
+
+            {
+
+                "provider":
+
+                    "local",
+
+
+                "quality":
+
+                    0.82
+
+            },
+
+
+
+
+            "phi-3-mini":
+
+            {
+
+                "provider":
+
+                    "local",
+
+
+                "quality":
+
+                    0.68
+
+            },
+
+
+
+
+            "local":
+
+            {
+
+                "provider":
+
+                    "local",
+
+
+                "quality":
+
+                    0.75
+
+            }
+
 
         }
 
@@ -63,23 +169,47 @@ class ExecutionEngine:
 
 
 
+
+
+
     # =====================================================
-    # Legacy Interface
+    # LEGACY SUPPORT
     # =====================================================
+
 
     def run(
+
         self,
-        task: str
-    ) -> str:
+
+        task:str
+
+    ):
 
 
-        return self.execute(
 
-            "gpt-4o",
+        result = self.execute(
 
-            task
 
-        ).get("response")
+            routed_model="local",
+
+
+            task=task
+
+
+        )
+
+
+
+        return result.get(
+
+            "response",
+
+            ""
+
+        )
+
+
+
 
 
 
@@ -87,234 +217,663 @@ class ExecutionEngine:
 
 
     # =====================================================
-    # Runtime Execution
+    # MAIN EXECUTION
     # =====================================================
+
 
     def execute(
+
+
         self,
-        routed_model: str,
-        task: str,
-        execution_id=None
-    ) -> Dict[str, Any]:
 
 
-        start_time = time.time()
+        routed_model=None,
 
 
-
-        # -------------------------------------------------
-        # Model Profile
-        # -------------------------------------------------
-
-        if routed_model == "gpt-4o":
-
-            sleep_base = 0.450
-
-            quality_base = 0.92
+        task=None,
 
 
+        execution_id=None,
 
-        elif routed_model == "llama-3-70b":
 
-            sleep_base = 0.250
+        api_key=None,
 
-            quality_base = 0.82
+
+        model=None,
+
+
+        provider=None
+
+
+    ) -> Dict[str,Any]:
 
 
 
-        else:
-
-            sleep_base = 0.080
-
-            quality_base = 0.68
+        start_time = time.perf_counter()
 
 
 
 
 
-        # -------------------------------------------------
-        # Simulation Execution
-        # -------------------------------------------------
+        try:
 
-        simulated_delay = (
 
-            sleep_base
 
-            +
 
-            random.uniform(
-                0.05,
-                0.15
+            # =================================================
+            # MODEL RESOLUTION
+            # =================================================
+
+
+
+            selected_model = (
+
+
+                model
+
+                or
+
+                routed_model
+
+                or
+
+                "local"
+
             )
 
-        )
-
-
-        time.sleep(
-            simulated_delay
-        )
 
 
 
-
-        # -------------------------------------------------
-        # Response Generation
-        # -------------------------------------------------
-
-        pool = self.mock_responses.get(
-
-            routed_model,
-
-            self.mock_responses["phi-3-mini"]
-
-        )
+            profile = self.model_profiles.get(
 
 
-        generated_response = random.choice(
-            pool
-        )
+                selected_model,
+
+
+                self.model_profiles["local"]
+
+            )
 
 
 
 
-
-        # -------------------------------------------------
-        # Telemetry Calculation
-        # -------------------------------------------------
-
-        latency_ms = round(
-
-            (time.time() - start_time)
-            *
-            1000,
-
-            3
-
-        )
+            selected_provider = (
 
 
+                provider
 
-        stochastic_noise = random.uniform(
+                or
 
-            -0.05,
+                profile.get(
 
-            0.05
+                    "provider",
 
-        )
+                    "local"
 
+                )
 
-        final_quality_score = min(
-
-            max(
-
-                quality_base + stochastic_noise,
-
-                0.0
-
-            ),
-
-            1.0
-
-        )
+            )
 
 
 
 
 
-        result = {
-
-
-            "response":
-
-                f"[{routed_model.upper()} INSTANCE] {generated_response}",
 
 
 
-            "latency_ms":
 
-                latency_ms,
-
-
-
-            "quality_score_qt":
-
-                final_quality_score,
+            # =================================================
+            # MODEL ROUTER EXECUTION
+            # =================================================
 
 
 
-            "token_telemetry":
+            model_result = self.model_router.execute(
 
-            {
+
+                model=selected_model,
+
+
+                task=task,
+
+
+                provider=selected_provider,
+
+
+                api_key=api_key
+
+
+            )
+
+
+
+
+
+
+            if not isinstance(model_result,dict):
+
+
+                model_result={
+
+                    "response":
+
+                        str(model_result)
+
+                }
+
+
+
+
+
+
+
+
+
+            response_text = model_result.get(
+
+
+                "response",
+
+
+                "Execution completed"
+
+
+            )
+
+
+
+
+
+
+
+
+            # =================================================
+            # LATENCY
+            # =================================================
+
+
+
+            latency_ms = round(
+
+
+                (
+
+                    time.perf_counter()
+
+                    -
+
+                    start_time
+
+                )
+
+                *
+
+                1000,
+
+
+                3
+
+
+            )
+
+
+
+
+
+
+
+
+
+            # =================================================
+            # TOKEN TELEMETRY
+            # =================================================
+
+
+
+            token_data = model_result.get(
+
+
+                "token_telemetry",
+
+
+                {}
+
+            )
+
+
+
+
+            if not isinstance(token_data,dict):
+
+
+                token_data={}
+
+
+
+
+
+
+            prompt_tokens = int(
+
+
+                token_data.get(
+
+                    "prompt_tokens",
+
+                    len(task.split()) if task else 0
+
+                )
+
+            )
+
+
+
+
+
+            completion_tokens = int(
+
+
+                token_data.get(
+
+                    "completion_tokens",
+
+                    len(response_text.split())
+
+                )
+
+            )
+
+
+
+
+
+
+            total_tokens = (
+
+
+                prompt_tokens
+
+                +
+
+                completion_tokens
+
+            )
+
+
+
+
+
+
+
+
+
+            token_data.update({
+
+
 
                 "prompt_tokens":
 
-                    len(task.split()) * 2,
+                    prompt_tokens,
+
 
 
                 "completion_tokens":
 
-                    len(generated_response.split()) * 2
-
-            }
-
-        }
+                    completion_tokens,
 
 
 
+                "total_tokens":
 
-
-        # =====================================================
-        # Execution Trace Payload
-        # =====================================================
-
-        result["trace"] = {
-
-
-            "execution_id":
-
-                execution_id,
-
-
-            "engine":
-
-                "ExecutionEngine",
+                    total_tokens,
 
 
 
-            "timestamp":
+                "context_window":
 
-                datetime.utcnow(),
+                    token_data.get(
+
+                        "context_window",
+
+                        8000
+
+                    )
+
+            })
 
 
 
-            "latency_ms":
-
-                latency_ms,
 
 
 
-            "output":
 
-            {
+
+
+            # =================================================
+            # QUALITY
+            # =================================================
+
+
+
+            quality_score = float(
+
+
+                model_result.get(
+
+
+                    "quality_score",
+
+
+                    profile["quality"]
+
+
+                )
+
+            )
+
+
+
+
+
+
+
+
+
+            # =================================================
+            # FINAL RESULT
+            # =================================================
+
+
+
+            result = {
+
+
+
+                "response":
+
+
+                    f"[{selected_model}] {response_text}",
+
+
+
 
                 "model":
 
-                    routed_model,
+                    selected_model,
 
 
-                "quality_score":
 
-                    final_quality_score,
+
+                "provider":
+
+                    selected_provider,
+
+
+
+
+                "quality_score_qt":
+
+                    quality_score,
+
+
+
+
+                "token_telemetry":
+
+                    token_data,
+
+
 
 
                 "status":
 
-                    "COMPLETED"
+                    "COMPLETED",
+
+
+
+
+                "runtime_ms":
+
+                    latency_ms
+
 
             }
 
-        }
 
 
 
-        return result
+
+
+
+
+
+            # =================================================
+            # TRACE
+            # =================================================
+
+
+
+            result["trace"] = {
+
+
+
+                "execution_id":
+
+                    execution_id,
+
+
+
+                "engine":
+
+                    "ExecutionEngine",
+
+
+
+                "timestamp":
+
+                    datetime.utcnow().isoformat(),
+
+
+
+
+                "input":
+
+                    task,
+
+
+
+
+                "output":
+
+                {
+
+
+
+                    "model":
+
+                        selected_model,
+
+
+
+                    "provider":
+
+                        selected_provider,
+
+
+
+                    "quality_score":
+
+                        quality_score,
+
+
+
+                    "status":
+
+                        "COMPLETED"
+
+                }
+
+
+
+            }
+
+
+
+
+
+
+
+
+            return result
+
+
+
+
+
+
+
+        # =====================================================
+        # FAILURE
+        # =====================================================
+
+
+        except Exception as e:
+
+
+
+            latency_ms = round(
+
+
+                (
+
+                    time.perf_counter()
+
+                    -
+
+                    start_time
+
+                )
+
+                *
+
+                1000,
+
+
+                3
+
+            )
+
+
+
+
+            return {
+
+
+
+                "response":
+
+                    "Execution failed",
+
+
+
+
+                "model":
+
+                    model or routed_model,
+
+
+
+
+                "provider":
+
+                    provider or "local",
+
+
+
+
+                "quality_score_qt":
+
+                    0.0,
+
+
+
+
+                "token_telemetry":
+
+                {
+
+
+
+                    "prompt_tokens":
+
+                        0,
+
+
+
+                    "completion_tokens":
+
+                        0,
+
+
+
+                    "total_tokens":
+
+                        0
+
+                },
+
+
+
+
+                "status":
+
+                    "FAILED",
+
+
+
+
+                "error":
+
+                    str(e),
+
+
+
+
+                "runtime_ms":
+
+                    latency_ms,
+
+
+
+
+                "trace":
+
+                {
+
+
+
+                    "execution_id":
+
+                        execution_id,
+
+
+
+                    "engine":
+
+                        "ExecutionEngine",
+
+
+
+                    "timestamp":
+
+                        datetime.utcnow().isoformat(),
+
+
+
+                    "status":
+
+                        "FAILED"
+
+                }
+
+            }

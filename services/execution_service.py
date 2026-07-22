@@ -6,34 +6,39 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from core.runtime import TrustOSRuntime
-from database.models import Execution
+
+from database.models import (
+    Execution,
+    Agent
+)
+
+from engines.cost_engine import CostEngine
 
 
 
 # ==========================================================
-# JSON SAFE
+# JSON SAFE CONVERTER
 # ==========================================================
 
 def json_safe(obj: Any):
 
     if isinstance(obj, datetime):
-
         return obj.isoformat()
 
 
     if isinstance(obj, dict):
 
         return {
-            k: json_safe(v)
-            for k, v in obj.items()
+            key: json_safe(value)
+            for key, value in obj.items()
         }
 
 
     if isinstance(obj, list):
 
         return [
-            json_safe(v)
-            for v in obj
+            json_safe(item)
+            for item in obj
         ]
 
 
@@ -47,7 +52,6 @@ def json_safe(obj: Any):
 # EXECUTION SERVICE
 # ==========================================================
 
-
 class ExecutionService:
 
 
@@ -55,42 +59,227 @@ class ExecutionService:
 
         self.runtime = TrustOSRuntime()
 
-
+        self.cost_engine = CostEngine()
 
 
 
     # ======================================================
-    # EXECUTE
+    # MAIN EXECUTION PIPELINE
     # ======================================================
-
 
     def execute(
+
         self,
+
         task: str,
-        db: Session
+
+        db: Session,
+
+        agent=None,
+
+        agent_name=None,
+
+        model=None,
+
+        provider=None,
+
+        agent_id=None,
+
+        execution_type="NORMAL",
+
+        parent_execution_id=None
+
     ):
 
 
         # ==================================================
-        # 1. CREATE EXECUTION ID FIRST
+        # 1. AGENT RESOLUTION
         # ==================================================
 
+        if agent and not agent_name:
+
+            agent_name = agent
+
+
+
+        registered_agent = None
+
+
+
+        if agent_id:
+
+
+            registered_agent = (
+
+                db.query(Agent)
+
+                .filter(
+                    Agent.id == agent_id
+                )
+
+                .first()
+
+            )
+
+
+            if not registered_agent:
+
+                raise Exception(
+                    "Agent not found"
+                )
+
+
+            if registered_agent.status != "ACTIVE":
+
+                raise Exception(
+                    "Agent disabled"
+                )
+
+
+            agent_name = registered_agent.name
+
+            model = registered_agent.model
+
+            provider = registered_agent.provider
+
+
+
+
+
+        elif agent_name:
+
+
+            registered_agent = (
+
+                db.query(Agent)
+
+                .filter(
+                    Agent.name == agent_name
+                )
+
+                .first()
+
+            )
+
+
+
+
+
+        # ==================================================
+        # 2. DEFAULT CONFIGURATION
+        # ==================================================
+
+        agent_name = (
+
+            agent_name
+
+            or
+
+            "GovernanceAgent"
+
+        )
+
+
+        model = (
+
+            model
+
+            or
+
+            "unknown"
+
+        )
+
+
+        provider = (
+
+            provider
+
+            or
+
+            "local"
+
+        )
+
+
+
+
+
+        # ==================================================
+        # 3. CREATE EXECUTION RECORD
+        # ==================================================
 
         execution = Execution(
 
             task=task,
 
-            agent="PENDING",
+
+            agent=agent_name,
+
+
+            agent_id=(
+
+                registered_agent.id
+
+                if registered_agent
+
+                else agent_id
+
+            ),
+
+
+            model=model,
+
+
+            provider=provider,
+
+
+            execution_type=execution_type,
+
+
+            parent_execution_id=parent_execution_id,
+
 
             decision="RUNNING",
 
-            trust_score=0.0,
 
-            risk_score=0.0,
+            status="RUNNING",
 
-            conflict_score=0.0
+
+            trust_score=0,
+
+
+            risk_score=0,
+
+
+            conflict_score=0,
+
+
+            runtime_ms=0,
+
+
+            latency_ms=0,
+
+
+            quality_score=0,
+
+
+            prompt_tokens=0,
+
+
+            completion_tokens=0,
+
+
+            total_tokens=0,
+
+
+            cost_usd=0,
+
+
+            currency="USD"
 
         )
+
 
 
         db.add(execution)
@@ -102,32 +291,65 @@ class ExecutionService:
 
 
         execution_id = execution.id
-
-
-
-
-
-        # ==================================================
-        # 2. RUNTIME EXECUTION WITH ID
+                # ==================================================
+        # 4. TRUSTOSAI RUNTIME EXECUTION
         # ==================================================
 
+        try:
 
-        runtime_result = self.runtime.execute(
 
-            task,
+            runtime_result = self.runtime.execute(
 
-            db,
+                task,
 
-            execution_id=execution_id
+                db,
 
-        )
+                execution_id=execution_id,
+
+                agent=agent_name,
+
+                model=model,
+
+                provider=provider
+
+            )
+
+
+
+        except Exception as e:
+
+
+            runtime_result = {
+
+
+                "decision": "BLOCK",
+
+
+                "trust_score": 0,
+
+
+                "risk_score": 100,
+
+
+                "conflict_score": 0,
+
+
+                "reasoning": str(e),
+
+
+                "result": {
+
+                    "error": str(e)
+
+                }
+
+
+            }
 
 
 
         runtime_result = json_safe(
-
             runtime_result
-
         )
 
 
@@ -135,9 +357,8 @@ class ExecutionService:
 
 
         # ==================================================
-        # 3. EXTRACT RESULT
+        # 5. GOVERNANCE RESULT EXTRACTION
         # ==================================================
-
 
         decision = runtime_result.get(
 
@@ -146,6 +367,7 @@ class ExecutionService:
             "BLOCK"
 
         )
+
 
 
         trust_score = self.safe_float(
@@ -161,6 +383,7 @@ class ExecutionService:
         )
 
 
+
         risk_score = self.safe_float(
 
             runtime_result.get(
@@ -172,6 +395,7 @@ class ExecutionService:
             )
 
         )
+
 
 
         conflict_score = self.safe_float(
@@ -188,17 +412,11 @@ class ExecutionService:
 
 
 
-        agent = (
+        reasoning = runtime_result.get(
 
-            runtime_result.get("agent")
+            "reasoning",
 
-            or
-
-            runtime_result.get("route")
-
-            or
-
-            "GovernanceAgent"
+            None
 
         )
 
@@ -206,10 +424,11 @@ class ExecutionService:
 
 
 
-        # ==================================================
-        # RESULT
-        # ==================================================
 
+
+        # ==================================================
+        # 6. RESULT NORMALIZATION
+        # ==================================================
 
         result_json = self.normalize_json(
 
@@ -225,11 +444,49 @@ class ExecutionService:
 
 
 
+        final_model = (
+
+            result_json.get(
+
+                "model"
+
+            )
+
+            or
+
+            model
+
+        )
 
 
-        telemetry = runtime_result.get(
 
-            "telemetry",
+        final_provider = (
+
+            result_json.get(
+
+                "provider"
+
+            )
+
+            or
+
+            provider
+
+        )
+
+
+
+
+
+
+
+        # ==================================================
+        # 7. TOKEN TELEMETRY
+        # ==================================================
+
+        token_data = result_json.get(
+
+            "token_telemetry",
 
             {}
 
@@ -237,13 +494,76 @@ class ExecutionService:
 
 
 
-        latency_ms = self.safe_float(
+        if not isinstance(
 
-            telemetry.get(
+            token_data,
 
-                "latency_ms",
+            dict
 
-                runtime_result.get(
+        ):
+
+            token_data = {}
+
+
+
+
+
+        prompt_tokens = self.safe_int(
+
+            token_data.get(
+
+                "prompt_tokens",
+
+                0
+
+            )
+
+        )
+
+
+
+        completion_tokens = self.safe_int(
+
+            token_data.get(
+
+                "completion_tokens",
+
+                0
+
+            )
+
+        )
+
+
+
+        total_tokens = self.safe_int(
+
+            token_data.get(
+
+                "total_tokens",
+
+                prompt_tokens + completion_tokens
+
+            )
+
+        )
+
+
+
+
+
+
+        # ==================================================
+        # 8. RUNTIME METRICS
+        # ==================================================
+
+        runtime_ms = self.safe_float(
+
+            runtime_result.get(
+
+                "runtime_ms",
+
+                result_json.get(
 
                     "runtime_ms",
 
@@ -257,69 +577,14 @@ class ExecutionService:
 
 
 
-        runtime_ms = self.safe_float(
+
+        latency_ms = self.safe_float(
 
             runtime_result.get(
 
-                "runtime_ms",
+                "latency_ms",
 
-                latency_ms
-
-            )
-
-        )
-
-
-
-
-        quality_score = self.extract_quality(
-
-            result_json,
-
-            telemetry,
-
-            decision
-
-        )
-
-
-
-
-
-        # ==================================================
-        # TOKEN
-        # ==================================================
-
-
-        token = result_json.get(
-
-            "token_telemetry",
-
-            {}
-
-        )
-
-
-        prompt_tokens = self.safe_int(
-
-            token.get(
-
-                "prompt_tokens",
-
-                0
-
-            )
-
-        )
-
-
-        completion_tokens = self.safe_int(
-
-            token.get(
-
-                "completion_tokens",
-
-                0
+                runtime_ms
 
             )
 
@@ -329,27 +594,20 @@ class ExecutionService:
 
 
 
+
         # ==================================================
-        # COST
+        # 9. QUALITY SCORE
         # ==================================================
 
+        quality_score = self.safe_float(
 
-        cost = runtime_result.get(
+            result_json.get(
 
-            "cost",
+                "quality_score",
 
-            {}
+                result_json.get(
 
-        )
-
-
-        if isinstance(cost, dict):
-
-            cost_usd = self.safe_float(
-
-                cost.get(
-
-                    "cost_usd",
+                    "quality_score_qt",
 
                     0
 
@@ -357,32 +615,131 @@ class ExecutionService:
 
             )
 
-        else:
+        )
 
-            cost_usd = self.safe_float(cost)
+
 
 
 
 
 
         # ==================================================
-        # TRACE
+        # 10. COST ATTRIBUTION
         # ==================================================
 
+        cost = self.cost_engine.calculate(
+
+            model=final_model,
+
+            prompt_tokens=prompt_tokens,
+
+            completion_tokens=completion_tokens
+
+        )
+
+
+
+        cost_usd = self.safe_float(
+
+            cost.get(
+
+                "cost_usd",
+
+                cost.get(
+
+                    "total_cost",
+
+                    0
+
+                )
+
+            )
+
+        )
+
+
+
+        currency = cost.get(
+
+            "currency",
+
+            "USD"
+
+        )
+
+
+
+
+
+
+
+
+        # ==================================================
+        # 11. EXECUTION TRACE
+        # ==================================================
 
         execution_trace = {
 
-            "execution_id":
 
-                execution_id,
-
-
-            "runtime":
-
-                runtime_result,
+            "execution_id": execution_id,
 
 
-            "stored_at":
+            "agent": agent_name,
+
+
+            "agent_id": (
+
+                registered_agent.id
+
+                if registered_agent
+
+                else None
+
+            ),
+
+
+            "model": final_model,
+
+
+            "provider": final_provider,
+
+
+            "execution_type": execution_type,
+
+
+            "decision": decision,
+
+
+            "trust_score": trust_score,
+
+
+            "risk_score": risk_score,
+
+
+            "conflict_score": conflict_score,
+
+
+            "tokens": {
+
+
+                "prompt": prompt_tokens,
+
+
+                "completion": completion_tokens,
+
+
+                "total": total_tokens
+
+            },
+
+
+            "cost": cost,
+
+
+            "runtime": runtime_result,
+
+
+            "timestamp":
 
                 datetime.utcnow().isoformat()
 
@@ -392,33 +749,38 @@ class ExecutionService:
 
 
 
+
         # ==================================================
-        # 4. UPDATE EXISTING EXECUTION
+        # 12. UPDATE EXECUTION RECORD
         # ==================================================
 
-
-        execution.agent = agent
-
-        execution.route = agent
+        execution.model = final_model
 
 
-        execution.trust_score = trust_score
+        execution.provider = final_provider
 
-        execution.risk_score = risk_score
-
-        execution.conflict_score = conflict_score
 
 
         execution.decision = decision
 
 
-        execution.policy_result = decision
+        execution.status = "COMPLETED"
 
 
-        execution.governance_result = decision
+
+        execution.trust_score = trust_score
 
 
-        execution.governance_status = decision
+        execution.risk_score = risk_score
+
+
+        execution.conflict_score = conflict_score
+
+
+
+        execution.reasoning = reasoning
+
+
 
 
 
@@ -429,14 +791,21 @@ class ExecutionService:
         )
 
 
+
         execution.execution_result = json.dumps(
 
-            result_json
+            runtime_result
 
         )
 
 
+
         execution.execution_trace = execution_trace
+
+
+
+        execution.telemetry = token_data
+
 
 
         execution.runtime_ms = runtime_ms
@@ -448,32 +817,106 @@ class ExecutionService:
         execution.quality_score = quality_score
 
 
+
         execution.prompt_tokens = prompt_tokens
 
 
         execution.completion_tokens = completion_tokens
 
 
+        execution.total_tokens = total_tokens
+
+
+
         execution.cost_usd = cost_usd
 
 
+        execution.currency = currency
 
 
 
-        try:
+        execution.updated_at = datetime.utcnow()
+                # ==================================================
+        # 13. UPDATE AGENT ANALYTICS
+        # ==================================================
 
-            db.commit()
-
-            db.refresh(execution)
-
-
-        except Exception:
-
-            db.rollback()
-
-            raise
+        if registered_agent:
 
 
+            old_total = (
+
+                registered_agent.total_executions
+
+                or
+
+                0
+
+            )
+
+
+
+            old_average = (
+
+                registered_agent.average_trust
+
+                or
+
+                0
+
+            )
+
+
+
+            new_total = old_total + 1
+
+
+
+            new_average = (
+
+                (
+
+                    old_average * old_total
+
+                )
+
+                +
+
+                trust_score
+
+            ) / new_total
+
+
+
+
+            registered_agent.total_executions = new_total
+
+
+            registered_agent.average_trust = round(
+
+                new_average,
+
+                2
+
+            )
+
+
+
+
+
+
+
+        # ==================================================
+        # 14. FINAL DATABASE COMMIT
+        # ==================================================
+
+        db.commit()
+
+
+        db.refresh(
+
+            execution
+
+        )
 
 
 
@@ -483,91 +926,122 @@ class ExecutionService:
 
 
 
-    # ======================================================
-    # QUALITY
-    # ======================================================
 
 
-    def extract_quality(
+
+
+
+    # ======================================================
+    # JSON NORMALIZER
+    # ======================================================
+
+    def normalize_json(
+
         self,
-        result,
-        telemetry,
-        decision
+
+        data
+
     ):
 
 
-        if isinstance(result, str):
+        if isinstance(
+
+            data,
+
+            str
+
+        ):
+
 
             try:
 
-                result = json.loads(result)
+                return json.loads(
 
-            except:
+                    data
 
-                result = {}
-
-
+                )
 
 
-        if "quality_score" in result:
-
-            return self.safe_float(
-
-                result["quality_score"]
-
-            )
+            except Exception:
 
 
+                return {
 
-        if "quality_score_qt" in result:
 
-            return self.safe_float(
+                    "response": data
 
-                result["quality_score_qt"]
-
-            )
+                }
 
 
 
-        trace = result.get(
-
-            "trace",
-
-            {}
-
-        )
 
 
-        if isinstance(trace, dict):
+        if isinstance(
 
-            output = trace.get(
+            data,
 
-                "output",
+            dict
 
-                {}
+        ):
 
-            )
-
-
-            if isinstance(output, dict):
-
-                if "quality_score" in output:
-
-                    return self.safe_float(
-
-                        output["quality_score"]
-
-                    )
+            return data
 
 
 
-        if isinstance(telemetry, dict):
 
-            return self.safe_float(
 
-                telemetry.get(
+        return {}
 
-                    "quality_score",
+
+
+
+
+
+
+
+
+    # ======================================================
+    # QUALITY SCORE EXTRACTION
+    # ======================================================
+
+    def extract_quality(
+
+        self,
+
+        result
+
+    ):
+
+
+        if not isinstance(
+
+            result,
+
+            dict
+
+        ):
+
+            return 0.0
+
+
+
+
+
+        return self.safe_float(
+
+
+            result.get(
+
+
+                "quality_score",
+
+
+
+                result.get(
+
+
+                    "quality_score_qt",
+
 
                     0
 
@@ -576,62 +1050,91 @@ class ExecutionService:
             )
 
 
+        )
 
-        return 0.0
+
+
+
 
 
 
 
 
     # ======================================================
-    # HELPERS
+    # SAFE FLOAT CONVERTER
     # ======================================================
 
+    def safe_float(
 
-    def normalize_json(self, data):
+        self,
 
-        if isinstance(data, str):
+        value
 
-            try:
+    ):
 
-                return json.loads(data)
-
-            except:
-
-                return {
-                    "response": data
-                }
-
-
-        if isinstance(data, dict):
-
-            return data
-
-
-        return {}
-
-
-
-
-    def safe_float(self, value):
 
         try:
 
-            return float(value)
 
-        except:
+            if value is None:
+
+                return 0.0
+
+
+
+            return float(
+
+                value
+
+            )
+
+
+
+        except Exception:
+
 
             return 0.0
 
 
 
 
-    def safe_int(self, value):
+
+
+
+
+
+
+    # ======================================================
+    # SAFE INTEGER CONVERTER
+    # ======================================================
+
+    def safe_int(
+
+        self,
+
+        value
+
+    ):
+
 
         try:
 
-            return int(value)
 
-        except:
+            if value is None:
+
+                return 0
+
+
+
+            return int(
+
+                value
+
+            )
+
+
+
+        except Exception:
+
 
             return 0

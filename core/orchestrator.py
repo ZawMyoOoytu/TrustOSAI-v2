@@ -1,6 +1,7 @@
 import time
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+
 from sqlalchemy.orm import Session
 
 
@@ -14,80 +15,64 @@ from engines.cost_engine import CostEngine
 
 
 
+
+
 class RuntimeOrchestrator:
+
+
     """
-    TrustOSAI Adaptive Execution Orchestrator v2.3
+    =====================================================
+    TrustOSAI Adaptive Execution Orchestrator v5.0
+    =====================================================
+
+    Enterprise AI Governance Runtime
 
 
-    Execution Pipeline:
+    Pipeline:
 
-        Request
-
-           |
-
-           v
-
-        Memory Context
-
-           |
-
-           v
-
-        Governance Engine
-
-           |
-
-           v
-
-        Agent Router
-
-           |
-
-           v
-
-        Execution Engine
-
-           |
-
-           v
-
-        Cost Engine
-
-           |
-
-           v
-
-        Telemetry
-
-           |
-
-           v
-
-        Audit + Memory Feedback
+    Request
+        |
+        v
+    Memory Context
+        |
+        v
+    Governance Engine
+        |
+        v
+    Trust / Risk / Policy
+        |
+        v
+    Agent Router
+        |
+        v
+    Execution Engine
+        |
+        v
+    Quality Evaluation
+        |
+        v
+    Cost Attribution
+        |
+        v
+    Telemetry
+        |
+        v
+    Audit + Memory Feedback
 
 
-    Execution Identity Flow:
 
-        execution_id
+    Features:
 
-              |
-
-              v
-
-        Runtime
-
-              |
-
-              v
-
-        ExecutionEngine
-
-              |
-
-              v
-
-        Trace
-
+    - Agent Identity Propagation
+    - Model Routing
+    - Provider Routing
+    - Trust Evaluation
+    - Risk Detection
+    - Policy Enforcement
+    - Execution Replay
+    - Cost Attribution
+    - Telemetry
+    - Memory Feedback
 
     """
 
@@ -95,19 +80,27 @@ class RuntimeOrchestrator:
 
     def __init__(self):
 
+
         self.memory_engine = MemoryEngine()
+
 
         self.governance_engine = GovernanceEngine()
 
+
         self.router_engine = RouterEngine()
+
 
         self.execution_engine = ExecutionEngine()
 
+
         self.telemetry_engine = TelemetryEngine()
+
 
         self.audit_engine = AuditEngine()
 
+
         self.cost_engine = CostEngine()
+
 
 
 
@@ -119,12 +112,28 @@ class RuntimeOrchestrator:
 
 
     def execute(
+
         self,
+
         task: str,
+
         db: Session,
+
         execution_id=None,
-        user_role: str = "user-default-01"
-    ) -> Dict[str, Any]:
+
+        user_role="user-default-01",
+
+        execution_mode="NORMAL",
+
+        existing_execution=False,
+
+        agent=None,
+
+        model=None,
+
+        provider=None
+
+    ) -> Dict[str,Any]:
 
 
         start_time = time.perf_counter()
@@ -134,8 +143,9 @@ class RuntimeOrchestrator:
         try:
 
 
+
             # =================================================
-            # 1. MEMORY
+            # MEMORY CONTEXT
             # =================================================
 
 
@@ -149,21 +159,33 @@ class RuntimeOrchestrator:
 
 
 
-            request_data = {
+            request = {
+
 
                 "task": task,
 
+
                 "context": context,
 
-                "user_role": user_role
+
+                "user_role": user_role,
+
+
+                "agent": agent,
+
+
+                "model": model,
+
+
+                "provider": provider
+
 
             }
 
 
 
-
             # =================================================
-            # 2. GOVERNANCE
+            # GOVERNANCE ENGINE
             # =================================================
 
 
@@ -171,7 +193,7 @@ class RuntimeOrchestrator:
 
                 self.governance_engine.evaluate_request(
 
-                    request_data,
+                    request,
 
                     db
 
@@ -218,13 +240,8 @@ class RuntimeOrchestrator:
                 )
 
             )
-
-
-
-
-
-            # =================================================
-            # 3. BLOCK
+                        # =================================================
+            # GOVERNANCE BLOCK
             # =================================================
 
 
@@ -235,13 +252,15 @@ class RuntimeOrchestrator:
 
                     time.perf_counter()
 
-                    - start_time
+                    -
+
+                    start_time
 
                 ) * 1000
 
 
 
-                blocked_response = {
+                blocked_result = {
 
 
                     "execution_id":
@@ -249,9 +268,9 @@ class RuntimeOrchestrator:
                         execution_id,
 
 
-                    "decision":
+                    "execution_mode":
 
-                        "BLOCK",
+                        execution_mode,
 
 
                     "task":
@@ -259,19 +278,9 @@ class RuntimeOrchestrator:
                         task,
 
 
-                    "trust_score":
+                    "agent":
 
-                        trust_score,
-
-
-                    "risk_score":
-
-                        risk_score,
-
-
-                    "conflict_score":
-
-                        conflict_score,
+                        agent or "GovernanceAgent",
 
 
                     "route":
@@ -279,9 +288,33 @@ class RuntimeOrchestrator:
                         "GovernanceAgent",
 
 
-                    "result":
 
-                    {
+                    "decision":
+
+                        "BLOCK",
+
+
+
+                    "trust_score":
+
+                        trust_score,
+
+
+
+                    "risk_score":
+
+                        risk_score,
+
+
+
+                    "conflict_score":
+
+                        conflict_score,
+
+
+
+                    "result":{
+
 
                         "status":
 
@@ -292,18 +325,22 @@ class RuntimeOrchestrator:
 
                             "Execution blocked by governance policy"
 
-                    },
-
-
-                    "cost":
-
-                    {
-
-                        "cost_usd":
-
-                            0.0
 
                     },
+
+
+
+                    "cost":{
+
+
+                        "cost_usd":0,
+
+
+                        "currency":"USD"
+
+
+                    },
+
 
 
                     "governance":
@@ -311,22 +348,32 @@ class RuntimeOrchestrator:
                         governance,
 
 
-                    "telemetry":
 
-                    {
+                    "telemetry":{
+
 
                         "latency_ms":
 
                             round(latency,3),
 
 
+
                         "quality_score":
 
-                            0.0
+                            0
 
-                    }
+
+                    },
+
+
+
+                    "runtime_ms":
+
+                        round(latency,3)
+
 
                 }
+
 
 
 
@@ -340,26 +387,31 @@ class RuntimeOrchestrator:
 
                     governance,
 
-                    blocked_response
+                    blocked_result
 
                 )
 
 
 
-                return blocked_response
+                return blocked_result
+
+
 
 
 
 
 
             # =================================================
-            # 4. ROUTING
+            # AGENT ROUTING
             # =================================================
 
 
             route = self.router_engine.select_optimal_agent(
 
+
+
                 {
+
 
                     "aggregated_trust":
 
@@ -375,17 +427,158 @@ class RuntimeOrchestrator:
 
                         risk_score
 
+
+
                 },
+
 
 
                 {
 
+
                     "task":
 
-                        task
+                        task,
+
+
+                    "requested_agent":
+
+                        agent,
+
+
+                    "requested_model":
+
+                        model,
+
+
+                    "requested_provider":
+
+                        provider
+
+
 
                 }
 
+
+            )
+
+
+
+
+            # fallback
+
+            if not route:
+
+
+                route = agent or "GovernanceAgent"
+
+
+
+
+
+
+
+
+
+            # =================================================
+            # EXECUTION ENGINE
+            # =================================================
+
+
+            execution_result = self.execution_engine.execute(
+
+
+
+                route,
+
+
+                task,
+
+
+
+                execution_id=execution_id,
+
+
+
+                model=model,
+
+
+                provider=provider
+
+
+
+            )
+
+
+
+
+
+            if not isinstance(execution_result,dict):
+
+
+                execution_result={
+
+
+                    "response":
+
+                        str(execution_result)
+
+
+                }
+
+
+
+
+
+
+
+            # =================================================
+            # MODEL PROVIDER RESOLUTION
+            # =================================================
+
+
+
+            final_model = (
+
+
+                execution_result.get(
+
+                    "model"
+
+                )
+
+                or
+
+                model
+
+                or
+
+                "unknown"
+
+
+            )
+
+
+
+
+            final_provider = (
+
+
+                execution_result.get(
+
+                    "provider"
+
+                )
+
+                or
+
+                provider
+
+                or
+
+                "local"
+
+
             )
 
 
@@ -393,20 +586,38 @@ class RuntimeOrchestrator:
 
 
 
+
+
             # =================================================
-            # 5. EXECUTION ENGINE
+            # TOKEN TELEMETRY
             # =================================================
 
 
-            execution_result = (
 
-                self.execution_engine.execute(
+            token_data = execution_result.get(
 
-                    route,
+                "token_telemetry",
 
-                    task,
+                {}
 
-                    execution_id=execution_id
+            )
+
+
+
+            if not isinstance(token_data,dict):
+
+                token_data={}
+
+
+
+
+            prompt_tokens = int(
+
+                token_data.get(
+
+                    "prompt_tokens",
+
+                    0
 
                 )
 
@@ -415,90 +626,177 @@ class RuntimeOrchestrator:
 
 
 
+            completion_tokens = int(
 
+                token_data.get(
 
+                    "completion_tokens",
 
-            # =================================================
-            # 6. COST
-            # =================================================
+                    0
 
-
-            raw_cost = self.cost_engine.calculate(
-
-                task
+                )
 
             )
 
 
-            if isinstance(raw_cost, dict):
 
-                cost_usd = float(
 
-                    raw_cost.get(
+            total_tokens = (
 
-                        "cost_usd",
+                prompt_tokens
 
-                        0
+                +
+
+                completion_tokens
+
+            )
+
+
+
+
+
+
+
+            # =================================================
+            # QUALITY SCORE
+            # =================================================
+
+
+
+            quality_score = float(
+
+                execution_result.get(
+
+                    "quality_score",
+
+                    0
+
+                )
+
+            )
+
+
+
+            if quality_score == 0:
+
+
+                nested_result = execution_result.get(
+
+                    "result",
+
+                    {}
+
+                )
+
+
+
+                if isinstance(
+
+                    nested_result,
+
+                    dict
+
+                ):
+
+
+                    quality_score=float(
+
+                        nested_result.get(
+
+                            "quality_score",
+
+                            0
+
+                        )
 
                     )
 
-                )
-
-            else:
-
-                cost_usd = float(
-
-                    raw_cost or 0
-
-                )
 
 
 
-            cost = {
 
-                "cost_usd":
 
-                    cost_usd
 
-            }
+            quality_score=round(
+
+                quality_score,
+
+                4
+
+            )
+
+
+
 
 
 
 
 
             # =================================================
-            # 7. TELEMETRY
+            # COST ENGINE
+            # =================================================
+
+
+
+            cost = self.cost_engine.calculate(
+
+
+
+                model=final_model,
+
+
+
+                prompt_tokens=prompt_tokens,
+
+
+
+                completion_tokens=completion_tokens
+
+
+
+            )
+                        # =================================================
+            # TELEMETRY COLLECTION
             # =================================================
 
 
             telemetry = self.telemetry_engine.collect(
 
+
                 task,
+
 
                 {
 
-                    "agent":
 
-                        route,
-
-
-                    "trust_score":
-
-                        trust_score,
+                    "agent": route,
 
 
-                    "risk_score":
-
-                        risk_score,
+                    "model": final_model,
 
 
-                    "decision":
+                    "provider": final_provider,
 
-                        decision
+
+                    "trust_score": trust_score,
+
+
+                    "risk_score": risk_score,
+
+
+                    "decision": decision,
+
+
+                    "quality_score": quality_score
+
+
 
                 }
 
+
             )
+
+
 
 
 
@@ -506,48 +804,39 @@ class RuntimeOrchestrator:
 
                 time.perf_counter()
 
-                - start_time
+                -
+
+                start_time
 
             ) * 1000
 
 
 
-            quality_score = float(
-
-                telemetry.get(
-
-                    "quality_score",
-
-                    execution_result.get(
-
-                        "quality_score_qt",
-
-                        1.0
-
-                    )
-
-                )
-
-            )
 
 
 
 
 
             # =================================================
-            # 8. MEMORY UPDATE
+            # MEMORY FEEDBACK UPDATE
             # =================================================
 
 
             self.memory_engine.update_memory(
 
+
                 db,
+
 
                 task,
 
+
                 execution_result,
 
+
                 quality_score
+
+
 
             )
 
@@ -555,22 +844,33 @@ class RuntimeOrchestrator:
 
 
 
+
+
+
             # =================================================
-            # 9. AUDIT
+            # AUDIT LOGGING
             # =================================================
 
 
             self.audit_engine.record(
 
+
+
                 task,
+
 
                 trust_score,
 
+
                 risk_score,
+
 
                 governance,
 
+
                 execution_result
+
+
 
             )
 
@@ -580,17 +880,44 @@ class RuntimeOrchestrator:
 
 
 
+
             # =================================================
-            # FINAL RESPONSE
+            # FINAL RUNTIME RESPONSE
             # =================================================
 
 
             return {
 
 
+
                 "execution_id":
 
                     execution_id,
+
+
+
+                "execution_mode":
+
+                    execution_mode,
+
+
+
+                "task":
+
+                    task,
+
+
+
+                "agent":
+
+                    route,
+
+
+
+                "route":
+
+                    route,
+
 
 
                 "decision":
@@ -598,14 +925,11 @@ class RuntimeOrchestrator:
                     decision,
 
 
-                "task":
-
-                    task,
-
 
                 "trust_score":
 
                     trust_score,
+
 
 
                 "risk_score":
@@ -613,14 +937,59 @@ class RuntimeOrchestrator:
                     risk_score,
 
 
+
                 "conflict_score":
 
                     conflict_score,
 
 
-                "route":
 
-                    route,
+                "model":
+
+                    final_model,
+
+
+
+                "provider":
+
+                    final_provider,
+
+
+
+
+
+                "token_telemetry":{
+
+
+
+                    "prompt_tokens":
+
+                        prompt_tokens,
+
+
+
+                    "completion_tokens":
+
+                        completion_tokens,
+
+
+
+                    "total_tokens":
+
+                        total_tokens
+
+
+
+                },
+
+
+
+
+                "quality_score":
+
+                    quality_score,
+
+
 
 
                 "result":
@@ -628,9 +997,13 @@ class RuntimeOrchestrator:
                     execution_result,
 
 
+
+
                 "cost":
 
                     cost,
+
+
 
 
                 "governance":
@@ -638,25 +1011,34 @@ class RuntimeOrchestrator:
                     governance,
 
 
-                "telemetry":
 
-                {
+
+                "telemetry":{
+
+
 
                     "latency_ms":
 
                         round(latency,3),
 
 
+
                     "quality_score":
 
                         quality_score
 
+
+
                 },
+
+
 
 
                 "runtime_ms":
 
                     round(latency,3)
+
+
 
             }
 
@@ -665,14 +1047,25 @@ class RuntimeOrchestrator:
 
 
 
+
+
+
+        # =====================================================
+        # GLOBAL EXCEPTION HANDLER
+        # =====================================================
+
+
         except Exception as e:
+
 
 
             latency = (
 
                 time.perf_counter()
 
-                - start_time
+                -
+
+                start_time
 
             ) * 1000
 
@@ -681,14 +1074,17 @@ class RuntimeOrchestrator:
             return {
 
 
+
                 "execution_id":
 
                     execution_id,
 
 
-                "decision":
 
-                    "BLOCK",
+                "execution_mode":
+
+                    execution_mode,
+
 
 
                 "task":
@@ -696,9 +1092,23 @@ class RuntimeOrchestrator:
                     task,
 
 
+
+                "agent":
+
+                    agent or "RuntimeOrchestrator",
+
+
+
+                "decision":
+
+                    "BLOCK",
+
+
+
                 "trust_score":
 
                     0.0,
+
 
 
                 "risk_score":
@@ -706,51 +1116,83 @@ class RuntimeOrchestrator:
                     1.0,
 
 
+
                 "conflict_score":
 
                     0.0,
 
 
-                "route":
 
-                    "RuntimeOrchestrator",
+                "result":{
 
-
-                "result":
-
-                {
 
                     "error":
 
                         str(e)
 
-                },
 
-
-                "cost":
-
-                {
-
-                    "cost_usd":
-
-                        0.0
 
                 },
 
 
-                "telemetry":
 
-                {
+                "cost":{
+
+
+                    "cost_usd":0,
+
+
+                    "currency":"USD"
+
+
+
+                },
+
+
+
+                "telemetry":{
+
 
                     "latency_ms":
 
                         round(latency,3),
 
 
+
                     "quality_score":
 
-                        0.0
+                        0
 
-                }
+
+
+                },
+
+
+
+                "runtime_ms":
+
+                    round(latency,3)
+
+
 
             }
+
+
+
+
+
+
+
+
+
+# =====================================================
+# GLOBAL INSTANCE
+# =====================================================
+
+
+orchestrator = RuntimeOrchestrator()
+
+
+
+# Backward Compatibility
+Orchestrator = RuntimeOrchestrator

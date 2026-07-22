@@ -1,26 +1,34 @@
 import time
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from core.orchestrator import RuntimeOrchestrator
 
 
 
+
+# =====================================================
+# TRUSTOSAI RUNTIME KERNEL
+# =====================================================
+
+
 class TrustOSRuntime:
     """
-    TrustOSAI Runtime Kernel v2.2
+    TrustOSAI Runtime Kernel v2.3
 
 
     Responsibilities:
 
     - Execute Runtime Orchestration
-    - Propagate Execution Identity
+    - Propagate Agent Identity
+    - Propagate Model Routing
     - Attach Runtime Telemetry
     - Normalize Execution Output
     - Protect Kernel Stability
 
 
     Pipeline:
+
 
         API
 
@@ -34,22 +42,24 @@ class TrustOSRuntime:
 
          v
 
-        Runtime Kernel
+        TrustOSRuntime
 
          |
 
          v
 
-        Orchestrator
+        RuntimeOrchestrator
 
          |
 
          v
 
-        Governance + Execution Engine
+        Governance Pipeline
+
 
 
     """
+
 
 
     def __init__(self):
@@ -58,53 +68,172 @@ class TrustOSRuntime:
 
 
 
+
+
     # =====================================================
-    # RUNTIME EXECUTION
+    # EXECUTION ENTRY POINT
     # =====================================================
 
 
     def execute(
+
         self,
+
         task: str,
+
         db=None,
-        execution_id=None
+
+        execution_id: Optional[int] = None,
+
+        agent: Optional[str] = None,
+
+        model: Optional[str] = None,
+
+        provider: Optional[str] = None
+
     ) -> Dict[str, Any]:
+
+
 
 
         start = time.perf_counter()
 
 
 
+
+
+        # =================================================
+        # RUNTIME CONTEXT
+        # =================================================
+
+
+        runtime_context = {
+
+
+            "execution_id": execution_id,
+
+
+            "agent": agent,
+
+
+            "model": model,
+
+
+            "provider": provider
+
+
+        }
+
+
+
+
+
         try:
+
+
+
+            # =============================================
+            # CALL ORCHESTRATOR
+            # =============================================
 
 
             result = self.orchestrator.execute(
 
+
                 task,
+
 
                 db,
 
-                execution_id=execution_id
+
+                execution_id=execution_id,
+
+
+                agent=agent,
+
+
+                model=model,
+
+
+                provider=provider
+
 
             )
 
 
 
-            # ---------------------------------
-            # Validate Runtime Output
-            # ---------------------------------
 
 
-            if not isinstance(result, dict):
+            # =============================================
+            # VALIDATE RESULT
+            # =============================================
+
+
+            if not isinstance(
+                result,
+                dict
+            ):
+
 
                 result = {
 
-                    "decision": "BLOCK",
+
+                    "decision":
+                        "BLOCK",
+
 
                     "result":
-                        "Invalid runtime output"
+                        "Invalid orchestrator response"
+
 
                 }
+
+
+
+
+
+        except TypeError:
+
+
+
+            """
+            Backward compatibility
+
+            If old RuntimeOrchestrator
+            does not accept new parameters
+            """
+
+
+
+            try:
+
+
+                result = self.orchestrator.execute(
+
+                    task,
+
+                    db,
+
+                    execution_id=execution_id
+
+                )
+
+
+
+            except Exception as e:
+
+
+                return self.runtime_error(
+
+                    task,
+
+                    execution_id,
+
+                    e,
+
+                    start
+
+                )
 
 
 
@@ -113,80 +242,35 @@ class TrustOSRuntime:
         except Exception as e:
 
 
-            latency = (
+            return self.runtime_error(
 
-                time.perf_counter()
+                task,
 
-                - start
+                execution_id,
 
-            ) * 1000
+                e,
 
+                start
 
-
-            return {
-
-
-                "decision": "BLOCK",
-
-
-                "task": task,
-
-
-                "execution_id": execution_id,
-
-
-                "trust_score": 0.0,
-
-
-                "risk_score": 1.0,
-
-
-                "conflict_score": 0.0,
-
-
-                "route": "RuntimeKernel",
+            )
 
 
 
-                "result": {
-
-                    "error": str(e)
-
-                },
 
 
 
-                "cost": {
-
-                    "cost_usd": 0.0
-
-                },
-
-
-
-                "telemetry": {
-
-                    "latency_ms":
-                        round(latency, 3),
-
-
-                    "quality_score":
-                        0.0
-
-                }
-
-
-            }
-
-
-
+        # =================================================
+        # LATENCY
+        # =================================================
 
 
         latency = (
 
             time.perf_counter()
 
-            - start
+            -
+
+            start
 
         ) * 1000
 
@@ -195,9 +279,9 @@ class TrustOSRuntime:
 
 
 
-        # ---------------------------------
-        # Runtime Metadata
-        # ---------------------------------
+        # =================================================
+        # NORMALIZE OUTPUT
+        # =================================================
 
 
         result.setdefault(
@@ -215,6 +299,36 @@ class TrustOSRuntime:
             "execution_id",
 
             execution_id
+
+        )
+
+
+
+        result.setdefault(
+
+            "agent",
+
+            agent
+
+        )
+
+
+
+        result.setdefault(
+
+            "model",
+
+            model
+
+        )
+
+
+
+        result.setdefault(
+
+            "provider",
+
+            provider
 
         )
 
@@ -262,6 +376,12 @@ class TrustOSRuntime:
 
 
 
+
+        # =================================================
+        # TELEMETRY
+        # =================================================
+
+
         telemetry = result.setdefault(
 
             "telemetry",
@@ -272,14 +392,45 @@ class TrustOSRuntime:
 
 
 
+        if not isinstance(
+            telemetry,
+            dict
+        ):
 
-        telemetry["runtime_latency_ms"] = round(
+            telemetry = {}
 
-            latency,
+            result["telemetry"] = telemetry
 
-            3
 
-        )
+
+
+
+        telemetry.update({
+
+
+            "runtime_latency_ms":
+                round(
+                    latency,
+                    3
+                ),
+
+
+            "agent":
+                agent,
+
+
+            "model":
+                model,
+
+
+            "provider":
+                provider
+
+
+
+        })
+
+
 
 
 
@@ -294,4 +445,120 @@ class TrustOSRuntime:
 
 
 
+
+
+        # =================================================
+        # RETURN FINAL RUNTIME RESULT
+        # =================================================
+
+
         return result
+
+
+
+
+
+
+
+
+
+
+    # =====================================================
+    # ERROR HANDLER
+    # =====================================================
+
+
+    def runtime_error(
+
+        self,
+
+        task,
+
+        execution_id,
+
+        error,
+
+        start
+
+    ):
+
+
+
+        latency = (
+
+            time.perf_counter()
+
+            -
+
+            start
+
+        ) * 1000
+
+
+
+
+        return {
+
+
+            "task":
+                task,
+
+
+            "execution_id":
+                execution_id,
+
+
+            "decision":
+                "BLOCK",
+
+
+            "trust_score":
+                0.0,
+
+
+            "risk_score":
+                100.0,
+
+
+            "conflict_score":
+                0.0,
+
+
+
+            "result": {
+
+
+                "error":
+                    str(error)
+
+
+            },
+
+
+
+            "telemetry": {
+
+
+                "latency_ms":
+                    round(
+                        latency,
+                        3
+                    ),
+
+
+                "quality_score":
+                    0.0
+
+
+            },
+
+
+
+            "runtime_ms":
+                round(
+                    latency,
+                    3
+                )
+
+
+        }

@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends
-
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from database.connection import get_db
 from database.models import Execution
-
 
 
 router = APIRouter(
@@ -16,8 +15,9 @@ router = APIRouter(
 
 @router.get("/")
 def get_stats(
-    db:Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
+
 
     total = (
         db.query(Execution)
@@ -25,36 +25,117 @@ def get_stats(
     )
 
 
+
     allowed = (
         db.query(Execution)
         .filter(
-            Execution.decision=="ALLOW"
+            Execution.decision.in_(
+                [
+                    "APPROVED",
+                    "ALLOW",
+                    "ALLOWED"
+                ]
+            )
         )
         .count()
     )
+
 
 
     blocked = (
         db.query(Execution)
         .filter(
-            Execution.decision=="BLOCK"
+            Execution.decision.in_(
+                [
+                    "BLOCK",
+                    "BLOCKED"
+                ]
+            )
         )
         .count()
     )
 
 
+
+    review = (
+        db.query(Execution)
+        .filter(
+            Execution.decision=="REVIEW"
+        )
+        .count()
+    )
+
+
+
+    avg_trust = (
+        db.query(
+            func.avg(
+                Execution.trust_score
+            )
+        )
+        .scalar()
+    )
+
+
+
+    avg_runtime = (
+        db.query(
+            func.avg(
+                Execution.runtime_ms
+            )
+        )
+        .scalar()
+    )
+
+
+
+    success_rate = 0
+
+
+    if total > 0:
+
+        success_rate = round(
+            (allowed / total) * 100,
+            2
+        )
+
+
+
     return {
 
-        "total_executions": total,
 
-        "allowed": allowed,
+        "total_executions":
+            total,
 
-        "blocked": blocked,
+
+        "allowed":
+            allowed,
+
+
+        "blocked":
+            blocked,
+
+
+        "review":
+            review,
+
 
         "success_rate":
+            success_rate,
+
+
+
+        "average_trust_score":
             round(
-                (allowed / total * 100)
-                if total > 0 else 0,
+                float(avg_trust or 0),
+                2
+            ),
+
+
+
+        "runtime_ms":
+            round(
+                float(avg_runtime or 0),
                 2
             )
 

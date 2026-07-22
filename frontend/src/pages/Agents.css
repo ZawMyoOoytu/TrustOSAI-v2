@@ -1,0 +1,826 @@
+/* =====================================================
+   TrustOSAI Agent Registry Page
+===================================================== */
+
+
+
+.agents-page {
+
+
+    padding:40px;
+
+
+    min-height:100vh;
+
+
+    background:#020617;
+
+
+    color:white;
+
+
+    font-family:
+
+    Inter,
+
+    system-ui,
+
+    sans-serif;
+
+
+}
+
+
+
+
+
+
+/* =====================================================
+   PAGE HEADER
+===================================================== */
+
+
+.page-title {
+
+
+    display:flex;
+
+
+    justify-content:space-between;
+
+
+    align-items:center;
+
+
+    margin-bottom:35px;
+
+
+}
+
+
+
+.page-title h1 {
+
+
+    font-size:34px;
+
+
+    font-weight:700;
+
+
+    margin:0;
+
+
+}
+
+
+
+.page-title p {
+
+
+    margin-top:8px;
+
+
+    color:#94a3b8;
+
+
+    font-size:15px;
+
+
+}
+
+
+
+
+
+
+
+
+/* =====================================================
+   CREATE BUTTON
+===================================================== */
+
+
+.create-btn {
+
+
+    background:#0ea5e9;
+
+
+    color:white;
+
+
+    border:none;
+
+
+    padding:12px 22px;
+
+
+    border-radius:12px;
+
+
+    font-size:15px;
+
+
+    font-weight:600;
+
+
+    cursor:pointer;
+
+
+    transition:.3s;
+
+
+}
+
+
+
+.create-btn:hover {
+
+
+    background:#0284c7;
+
+
+    transform:translateY(-2px);
+
+
+}
+
+
+
+
+
+
+
+
+
+/* =====================================================
+   ERROR
+===================================================== */
+
+
+.error-box {
+
+
+    background:#450a0a;
+
+
+    color:#fecaca;
+
+
+    border:1px solid #ef4444;
+
+
+    padding:15px;
+
+
+    border-radius:12px;
+
+
+    margin-bottom:20px;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* =====================================================
+   AGENT GRID
+===================================================== */
+
+
+.agent-grid {
+
+
+    display:grid;
+
+
+    grid-template-columns:
+
+    repeat(3,1fr);
+
+
+    gap:25px;
+
+
+}
+
+
+
+
+
+
+
+
+/* =====================================================
+   AGENT CARD
+===================================================== */
+
+
+.agent-card {
+
+
+    background:#111827;
+
+
+    border:1px solid #334155;
+
+
+    border-radius:18px;
+
+
+    padding:25px;
+
+
+    transition:.3s;
+
+
+    box-shadow:
+
+    0 10px 30px
+
+    rgba(0,0,0,.25);
+
+
+}
+
+
+
+
+.agent-card:hover {
+
+
+    transform:translateY(-5px);
+
+
+    border-color:#38bdf8;
+
+
+}
+
+
+
+
+
+
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+
+.agent-header {
+
+
+    display:flex;
+
+
+    justify-content:space-between;
+
+
+    align-items:center;
+
+
+}
+
+
+
+.agent-header h2 {
+
+
+    font-size:20px;
+
+
+    margin:0;
+
+
+    color:white;
+
+
+}
+
+
+
+
+
+
+
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+
+.active {
+
+
+    background:#166534;
+
+
+    color:#bbf7d0;
+
+
+    padding:6px 14px;
+
+
+    border-radius:20px;
+
+
+    font-size:12px;
+
+
+    font-weight:600;
+
+
+}
+
+
+
+
+
+
+.disabled {
+
+
+    background:#7f1d1d;
+
+
+    color:#fecaca;
+
+
+    padding:6px 14px;
+
+
+    border-radius:20px;
+
+
+    font-size:12px;
+
+
+    font-weight:600;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* =====================================================
+   AGENT INFORMATION
+===================================================== */
+
+
+.agent-info {
+
+
+    margin-top:25px;
+
+
+}
+
+
+
+
+.agent-info p {
+
+
+    display:flex;
+
+
+    justify-content:space-between;
+
+
+    color:#94a3b8;
+
+
+    margin-bottom:16px;
+
+
+    font-size:14px;
+
+
+}
+
+
+
+
+.agent-info strong {
+
+
+    color:white;
+
+
+    font-weight:600;
+
+
+}
+
+
+
+
+
+
+
+
+/* =====================================================
+   TRUST BAR
+===================================================== */
+
+
+.trust-bar {
+
+
+    height:10px;
+
+
+    background:#334155;
+
+
+    border-radius:20px;
+
+
+    overflow:hidden;
+
+
+    margin-top:20px;
+
+
+}
+
+
+
+
+.trust-bar div {
+
+
+    height:100%;
+
+
+    background:
+
+    linear-gradient(
+
+        90deg,
+
+        #38bdf8,
+
+        #22c55e
+
+    );
+
+
+    transition:.5s;
+
+
+}
+
+
+
+
+
+
+
+
+/* =====================================================
+   ACTION BUTTONS
+===================================================== */
+
+
+.card-actions {
+
+
+    display:flex;
+
+
+    gap:12px;
+
+
+    margin-top:25px;
+
+
+}
+
+
+
+
+
+.card-actions button {
+
+
+    flex:1;
+
+
+    background:#1e293b;
+
+
+    border:1px solid #475569;
+
+
+    color:white;
+
+
+    padding:10px;
+
+
+    border-radius:10px;
+
+
+    cursor:pointer;
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+.card-actions button:hover {
+
+
+    background:#0ea5e9;
+
+
+    border-color:#0ea5e9;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* =====================================================
+   MODAL
+===================================================== */
+
+
+.modal {
+
+
+    position:fixed;
+
+
+    inset:0;
+
+
+    background:
+
+    rgba(0,0,0,.7);
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    justify-content:center;
+
+
+    z-index:1000;
+
+
+}
+
+
+
+
+
+
+
+
+.modal-box {
+
+
+    width:420px;
+
+
+    background:#111827;
+
+
+    border:1px solid #334155;
+
+
+    border-radius:18px;
+
+
+    padding:30px;
+
+
+    color:white;
+
+
+    box-shadow:
+
+    0 20px 60px
+
+    rgba(0,0,0,.5);
+
+
+}
+
+
+
+
+
+.modal-box h2 {
+
+
+    margin-bottom:20px;
+
+
+}
+
+
+
+
+
+
+
+
+.modal-box input {
+
+
+    width:100%;
+
+
+    background:#020617;
+
+
+    border:1px solid #475569;
+
+
+    color:white;
+
+
+    padding:12px;
+
+
+    border-radius:10px;
+
+
+    margin-bottom:15px;
+
+
+    outline:none;
+
+
+}
+
+
+
+
+.modal-box input:focus {
+
+
+    border-color:#38bdf8;
+
+
+}
+
+
+
+
+
+
+
+
+.modal-box button {
+
+
+    width:100%;
+
+
+    padding:12px;
+
+
+    margin-top:10px;
+
+
+    border-radius:10px;
+
+
+    border:none;
+
+
+    cursor:pointer;
+
+
+    background:#0ea5e9;
+
+
+    color:white;
+
+
+    font-weight:600;
+
+
+}
+
+
+
+
+.modal-box button:last-child {
+
+
+    background:#334155;
+
+
+}
+
+
+
+
+
+
+
+
+/* =====================================================
+   RESPONSIVE DESIGN
+===================================================== */
+
+
+@media(max-width:1200px){
+
+
+    .agent-grid {
+
+
+        grid-template-columns:
+
+        repeat(2,1fr);
+
+
+    }
+
+
+}
+
+
+
+
+
+
+@media(max-width:768px){
+
+
+    .agents-page {
+
+
+        padding:20px;
+
+
+    }
+
+
+
+
+    .page-title {
+
+
+        flex-direction:column;
+
+
+        align-items:flex-start;
+
+
+        gap:20px;
+
+
+    }
+
+
+
+
+
+    .agent-grid {
+
+
+        grid-template-columns:
+
+        1fr;
+
+
+    }
+
+
+
+}

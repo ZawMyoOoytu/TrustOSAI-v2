@@ -1,0 +1,507 @@
+/* ======================================
+   TrustOSAI Dashboard
+   Developer Control Plane UI
+====================================== */
+
+
+.dashboard{
+
+    padding:30px;
+
+    color:#e5e7eb;
+
+    background:#0b1220;
+
+    min-height:100vh;
+
+    font-family:
+    Inter,
+    system-ui,
+    sans-serif;
+
+}
+
+
+
+
+
+/* HEADER */
+
+.dashboard-header{
+
+    margin-bottom:30px;
+
+}
+
+
+.dashboard-header h1{
+
+    font-size:32px;
+
+    margin-bottom:8px;
+
+}
+
+
+.dashboard-header p{
+
+    color:#94a3b8;
+
+    font-size:16px;
+
+}
+
+
+.dashboard-header small{
+
+    color:#64748b;
+
+}
+
+
+
+
+
+
+/* ==============================
+   KPI CARDS
+============================== */
+
+
+.cards{
+
+
+display:grid;
+
+
+grid-template-columns:
+repeat(4,1fr);
+
+
+gap:20px;
+
+
+margin-bottom:30px;
+
+
+}
+
+
+
+.card{
+
+
+background:
+linear-gradient(
+145deg,
+#111827,
+#172033
+);
+
+
+border:
+
+1px solid #243047;
+
+
+border-radius:16px;
+
+
+padding:20px;
+
+
+box-shadow:
+
+0 10px 30px
+rgba(0,0,0,.25);
+
+
+transition:.3s;
+
+
+}
+
+
+
+.card:hover{
+
+
+transform:
+translateY(-4px);
+
+
+}
+
+
+
+
+.card h3{
+
+
+color:#94a3b8;
+
+font-size:14px;
+
+
+}
+
+
+
+.card h1{
+
+
+font-size:32px;
+
+
+margin-top:15px;
+
+
+color:#ffffff;
+
+
+}
+
+
+
+
+
+
+
+/* ==============================
+ MAIN GRID
+============================== */
+
+
+.dashboard-grid{
+
+
+display:grid;
+
+
+grid-template-columns:
+
+repeat(3,1fr);
+
+
+gap:25px;
+
+
+}
+
+
+
+
+.panel{
+
+
+background:#111827;
+
+
+border:
+
+1px solid #263449;
+
+
+border-radius:18px;
+
+
+padding:25px;
+
+
+}
+
+
+
+
+.panel h2{
+
+
+font-size:20px;
+
+
+margin-bottom:20px;
+
+
+}
+
+
+
+
+
+
+
+/* ==============================
+ TRUST SCORE
+============================== */
+
+
+.trust-circle{
+
+
+width:140px;
+
+
+height:140px;
+
+
+border-radius:50%;
+
+
+display:flex;
+
+
+align-items:center;
+
+
+justify-content:center;
+
+
+margin:auto;
+
+
+font-size:42px;
+
+
+font-weight:bold;
+
+
+background:
+
+radial-gradient(
+circle,
+#2563eb,
+#111827
+);
+
+
+border:
+
+5px solid #3b82f6;
+
+
+}
+
+
+
+.panel p{
+
+
+text-align:center;
+
+
+color:#94a3b8;
+
+
+}
+
+
+
+
+
+/* ==============================
+ GOVERNANCE BAR
+============================== */
+
+
+.decision-box{
+
+
+margin-bottom:20px;
+
+
+}
+
+
+
+.decision-box > div:first-child{
+
+
+display:flex;
+
+
+justify-content:space-between;
+
+
+margin-bottom:8px;
+
+
+}
+
+
+
+
+.progress{
+
+
+height:10px;
+
+
+background:#1e293b;
+
+
+border-radius:10px;
+
+
+overflow:hidden;
+
+
+}
+
+
+
+.progress-fill{
+
+
+height:100%;
+
+
+background:
+
+linear-gradient(
+90deg,
+#3b82f6,
+#22c55e
+);
+
+
+border-radius:10px;
+
+
+}
+
+
+
+
+
+.decision-box small{
+
+
+display:block;
+
+
+margin-top:6px;
+
+
+color:#94a3b8;
+
+
+}
+
+
+
+
+
+
+
+/* ==============================
+ HEALTH
+============================== */
+
+
+.health-item{
+
+
+padding:12px;
+
+
+background:#0f172a;
+
+
+border-radius:10px;
+
+
+margin-bottom:10px;
+
+
+font-size:15px;
+
+
+}
+
+
+
+
+.runtime{
+
+
+margin-top:20px;
+
+
+padding:12px;
+
+
+border-radius:10px;
+
+
+background:#020617;
+
+
+color:#38bdf8;
+
+
+font-weight:bold;
+
+
+}
+
+
+
+
+
+
+
+/* ==============================
+ RESPONSIVE
+============================== */
+
+
+@media(max-width:1000px){
+
+
+.cards{
+
+
+grid-template-columns:
+repeat(2,1fr);
+
+
+}
+
+
+.dashboard-grid{
+
+
+grid-template-columns:
+1fr;
+
+
+}
+
+
+}
+
+
+
+@media(max-width:600px){
+
+
+.cards{
+
+
+grid-template-columns:
+1fr;
+
+
+}
+
+
+.dashboard{
+
+
+padding:15px;
+
+
+}
+
+
+}
