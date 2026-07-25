@@ -1,448 +1,371 @@
-# TrustOSAI v2.0
+# ⚡ TrustOSAI v2
 
-## Adaptive AI Governance Runtime Platform
+> **Adaptive AI Governance Runtime for Secure, Trust-Aware, Policy-Driven AI Execution**
 
-![TrustOSAI Banner](https://img.shields.io/badge/TrustOSAI-AI%20Governance%20Runtime-blue)
-![Python](https://img.shields.io/badge/Python-3.14+-green)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688)
-![License](https://img.shields.io/badge/Status-Research%20%2F%20Development-orange)
+TrustOSAI is an enterprise-grade AI Governance Runtime designed to provide trust evaluation, policy enforcement, execution monitoring, model routing, cost attribution, telemetry, and execution replay for modern AI applications.
 
----
-
-## Overview
-
-**TrustOSAI** is an adaptive AI governance runtime platform designed to provide **trust-aware execution control, risk evaluation, policy enforcement, telemetry monitoring, and auditability for autonomous AI agents.**
-
-Unlike traditional AI application frameworks that directly send user requests to language models, TrustOSAI introduces a governance layer between users and AI execution.
-
-The platform evaluates AI requests before execution by analyzing:
-
-* Trust score
-* Risk level
-* Policy compliance
-* Execution conflict
-* Model suitability
-* Runtime telemetry
-* Cost attribution
-
-The goal is to enable safer, more transparent, and accountable deployment of autonomous AI systems.
+Unlike traditional AI gateways, TrustOSAI continuously evaluates every AI execution using governance policies, trust scoring, risk analysis, and runtime telemetry before allowing models to execute.
 
 ---
 
-# Core Concept
+# 🚀 Features
 
-Traditional AI execution:
+## AI Governance
 
-```
-User Request
-      |
-      v
-   AI Model
-      |
-      v
-  Response
-```
-
-TrustOSAI execution model:
-
-```
-User Request
-
-      |
-      v
-
-Governance Evaluation
-
-      |
-      v
-
-Trust / Risk Analysis
-
-      |
-      v
-
-Policy Decision
-
-      |
-      v
-
-Agent Routing
-
-      |
-      v
-
-AI Execution
-
-      |
-      v
-
-Telemetry + Audit Feedback
-```
+- Trust Score Evaluation
+- Policy Enforcement Engine
+- Risk Detection
+- Governance Decision Engine
+- Human Review Workflow
+- AI Safety Controls
 
 ---
 
-# Key Features
+## Runtime Intelligence
 
-## 1. Trust Evaluation Engine
+- Adaptive Runtime Orchestrator
+- Execution Pipeline
+- Model Routing
+- Multi-Provider Support
+- Provider Failover
+- Runtime Optimization
 
-TrustOSAI evaluates execution reliability using adaptive trust metrics.
+---
 
-Capabilities:
+## Supported Providers
 
-* Trust score calculation
-* Historical execution feedback
-* Quality measurement
-* Decision confidence analysis
+- OpenAI
+- Claude (Anthropic)
+- Local LLM
+- Extensible Provider Adapter Architecture
 
-Example:
+---
+
+## Execution Monitoring
+
+- Live Execution Trace
+- Runtime Timeline
+- Governance Timeline
+- Token Telemetry
+- Latency Metrics
+- Quality Score
+- Cost Tracking
+
+---
+
+## Enterprise Features
+
+- Execution Replay
+- Audit Logging
+- Billing Integration
+- PostgreSQL Storage
+- REST API
+- OpenAPI Documentation
+
+---
+
+# 🏗 Architecture
 
 ```
-Trust Score: 85.4%
+                    +----------------------+
+                    |     Frontend UI      |
+                    +----------+-----------+
+                               |
+                               v
+                    +----------------------+
+                    |    FastAPI Backend   |
+                    +----------+-----------+
+                               |
+      ---------------------------------------------------------
+      |            Runtime Orchestrator                        |
+      ---------------------------------------------------------
+            |        |        |         |        |
+            v        v        v         v        v
 
-Decision:
-ALLOW_WITH_MONITORING
+      Governance  Router   Provider   Telemetry Audit
+        Engine    Engine   Manager     Engine    Engine
+
+            |                     |
+            +----------+----------+
+                       |
+                       v
+                AI Model Providers
+
+        OpenAI | Claude | Local Models
 ```
 
 ---
 
-# 2. AI Governance Decision Engine
-
-Every AI request passes through governance evaluation.
-
-Supported decisions:
+# 📂 Project Structure
 
 ```
-ALLOW
+TrustOSAI-v2/
 
-ALLOW_WITH_MONITORING
-
-REVIEW
-
-BLOCK
-```
-
-The governance layer enables controlled AI deployment in sensitive environments.
-
----
-
-# 3. Risk Detection
-
-TrustOSAI analyzes execution risk before allowing autonomous execution.
-
-Evaluated factors:
-
-* Request risk
-* Policy constraints
-* Execution conflicts
-* Historical behavior
-
----
-
-# 4. Adaptive Agent Routing
-
-The runtime dynamically selects execution agents based on:
-
-* Trust score
-* Risk level
-* Runtime performance
-* Cost efficiency
-
-Example:
-
-```
-Low Risk Task
-      |
-      v
-Lightweight Model
-
-
-High Risk Task
-      |
-      v
-Advanced Model + Monitoring
-```
-
----
-
-# 5. Execution Trace & Audit System
-
-Every execution generates a trace record.
-
-Example:
-
-```json
-{
- "execution_id":48,
- "agent":"llama-3-70b",
- "decision":"REVIEW",
- "trust_score":55.84,
- "quality_score":0.85,
- "latency_ms":382
-}
-```
-
-Tracked information:
-
-* Execution identity
-* Agent selection
-* Governance decision
-* Runtime latency
-* Quality metrics
-* Token usage
-* Cost information
-
----
-
-# 6. Runtime Telemetry
-
-TrustOSAI collects execution intelligence:
-
-Metrics:
-
-* Latency
-* Quality score
-* Token usage
-* Cost
-* Model performance
-
-Telemetry enables continuous optimization of AI operations.
-
----
-
-# 7. Cost Attribution
-
-The runtime tracks AI execution cost.
-
-Supported metrics:
-
-* Token consumption
-* Execution cost
-* Model usage
-* Runtime efficiency
-
----
-
-# System Architecture
-
-```
-                 TrustOSAI Runtime
-
-+-------------------------------------+
-
-              API Layer
-
-+-------------------------------------+
-
-              Runtime Kernel
-
-+-------------------------------------+
-
-          Orchestration Engine
-
-+-------------------------------------+
-
- Governance | Trust | Risk | Policy
-
-+-------------------------------------+
-
- Agent Router
-
-+-------------------------------------+
-
- Execution Engine
-
-+-------------------------------------+
-
- Telemetry + Audit + Memory
-
-+-------------------------------------+
-
-              Database
-
-+-------------------------------------+
-```
-
----
-
-# Project Structure
-
-```
-TrustOSAI-v2
-
-├── api
-│   ├── execution.py
-│   ├── executions.py
-│   ├── health.py
-│   └── policy.py
+├── adapters/
+│   ├── openai_adapter.py
+│   ├── claude_adapter.py
+│   ├── local_adapter.py
+│   └── base_adapter.py
 │
-├── core
-│   ├── runtime.py
-│   └── orchestrator.py
-│
-├── engines
-│   ├── execution_engine.py
-│   ├── governance_engine.py
-│   ├── trust_engine.py
-│   ├── risk_engine.py
-│   ├── router_engine.py
-│   ├── telemetry_engine.py
-│   └── cost_engine.py
-│
-├── database
-│   ├── models.py
-│   ├── repository.py
-│   └── session.py
-│
-├── schemas
-│
-├── services
-│   └── execution_service.py
-│
-├── tests
-│
+├── api/
+├── core/
+├── database/
+├── router/
+├── schemas/
+├── services/
+├── frontend/
 ├── main.py
-├── Dockerfile
 └── requirements.txt
 ```
 
 ---
 
-# API Example
+# ⚙ Technology Stack
 
-## Execute AI Task
+Backend
 
-### Request
+- Python
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
 
-```http
-POST /api/execution/
-```
+Frontend
 
-Body:
+- React
+- Vite
 
-```json
-{
- "task":"Analyze security risk of autonomous AI agent"
-}
-```
+AI
 
-Response:
-
-```json
-{
- "execution_id":48,
- "agent":"llama-3-70b",
- "trust_score":55.84,
- "risk_score":0,
- "decision":"REVIEW",
- "quality_score":0.85,
- "latency_ms":382
-}
-```
+- OpenAI
+- Claude
+- Local LLM
 
 ---
 
-# Technology Stack
-
-Backend:
-
-* Python
-* FastAPI
-* SQLAlchemy
-* PostgreSQL / SQLite
-
-AI Runtime:
-
-* Trust Evaluation Engine
-* Governance Engine
-* Execution Engine
-* Telemetry Engine
-
-Infrastructure:
-
-* Docker
-* REST API
-
----
-
-# Development Status
-
-Current Version:
+# 🧠 Runtime Flow
 
 ```
-TrustOSAI v2.0 Runtime Stable
+Client Request
+
+        │
+
+        ▼
+
+Policy Evaluation
+
+        │
+
+        ▼
+
+Trust Scoring
+
+        │
+
+        ▼
+
+Risk Analysis
+
+        │
+
+        ▼
+
+Governance Decision
+
+        │
+
+        ▼
+
+Model Routing
+
+        │
+
+        ▼
+
+Provider Execution
+
+        │
+
+        ▼
+
+Telemetry Collection
+
+        │
+
+        ▼
+
+Audit Logging
+
+        │
+
+        ▼
+
+Response
 ```
 
-Implemented:
+---
 
-✅ AI Governance Pipeline
-✅ Trust Evaluation
-✅ Risk Analysis
-✅ Policy Decision
-✅ Agent Routing
-✅ Execution Trace
-✅ Telemetry Collection
-✅ Cost Tracking
-✅ Database Persistence
+# 📊 Governance Decisions
+
+TrustOSAI supports multiple governance outcomes.
+
+| Decision | Description |
+|-----------|-------------|
+| ALLOW | Execution approved |
+| ALLOW_WITH_MONITORING | Execute while monitoring |
+| REVIEW | Human approval required |
+| BLOCK | Execution rejected |
 
 ---
 
-# Roadmap
+# 📈 Dashboard
 
-## v2.1 — Product Foundation
+The developer dashboard provides:
 
-* Improved dashboard visualization
-* Real-time execution streaming
-* Execution replay
-* Advanced analytics
-
-## v2.5 — AI Platform
-
-* Multi-model provider support
-* API key management
-* User authentication
-* Usage tracking
-
-## v3.0 — Enterprise AI Governance Platform
-
-* Organization management
-* Billing system
-* Enterprise deployment
-* Compliance reporting
+- Runtime Statistics
+- Trust Score Analytics
+- Execution History
+- Governance Timeline
+- Replay Execution
+- Cost Analytics
+- Token Usage
+- Latency Monitoring
 
 ---
 
-# Research Direction
+# 🔁 Execution Replay
 
-TrustOSAI explores the development of:
+Replay enables developers to inspect previous executions including:
 
-* Trust-aware autonomous AI systems
-* Adaptive AI governance
-* Policy-controlled AI execution
-* Transparent AI operations
-
----
-
-# Vision
-
-The vision of TrustOSAI is to create a runtime control layer that enables organizations to deploy autonomous AI systems with:
-
-* Higher trust
-* Better accountability
-* Safer execution
-* Transparent decision processes
+- Original Prompt
+- Selected Provider
+- Trust Evaluation
+- Governance Decision
+- Runtime Trace
+- AI Response
+- Token Usage
 
 ---
 
-# Author
+# 🔒 Security
+
+TrustOSAI includes:
+
+- Trust-Based Execution
+- Policy-as-Code
+- Runtime Governance
+- Risk Detection
+- Audit Logging
+- Secure Provider Routing
+
+---
+
+# 🛠 Installation
+
+Clone repository
+
+```bash
+git clone https://github.com/ZawMyoOoytu/TrustOSAI-v2.git
+```
+
+Move into project
+
+```bash
+cd TrustOSAI-v2
+```
+
+Install backend dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Run backend
+
+```bash
+uvicorn main:app --reload
+```
+
+Run frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+# 📡 API Documentation
+
+After starting the backend:
+
+Swagger
+
+```
+http://localhost:8000/docs
+```
+
+OpenAPI
+
+```
+http://localhost:8000/openapi.json
+```
+
+---
+
+# 🎯 Roadmap
+
+- Multi-Agent Governance
+- Autonomous Agent Runtime
+- Dynamic Policy Engine
+- Memory Engine
+- Explainable AI Decisions
+- Kubernetes Deployment
+- Docker Support
+- Multi-Tenant Support
+- Enterprise Authentication
+- SaaS Billing
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome.
+
+Please fork the repository and submit a pull request.
+
+---
+
+# 📄 License
+
+MIT License
+
+---
+
+# 👨‍💻 Author
 
 **Zaw Myo Oo**
 
-TrustOSAI Project
+Master's Student
+
+Yangon Technological University (YTU)
+
+Research Interests:
+
+- AI Governance
+- AI Safety
+- Trustworthy AI
+- Autonomous Agents
+- Large Language Models
+- AI Runtime Systems
 
 ---
 
-# License
+## ⭐ Star this repository
 
-This project is currently under active research and development.
+If you find TrustOSAI useful, please consider giving it a ⭐ on GitHub.
 
-License information will be updated in future releases.
+```
+TrustOSAI
+Building Trust into Every AI Execution.
+```
