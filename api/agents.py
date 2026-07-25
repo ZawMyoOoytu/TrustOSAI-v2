@@ -5,7 +5,10 @@ from fastapi import (
     status
 )
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import (
+    Session,
+    joinedload
+)
 
 from database.session import get_db
 
@@ -26,10 +29,15 @@ from schemas.agent import (
 
 # =====================================================
 # ROUTER
+# IMPORTANT:
+# main.py already adds /api prefix
+#
+# Result:
+# /api/agents/
 # =====================================================
 
 router = APIRouter(
-    prefix="/api/agents",
+    prefix="/agents",
     tags=[
         "Agents"
     ]
@@ -98,11 +106,8 @@ def create_agent(
         if existing:
 
             raise HTTPException(
-
                 status_code=400,
-
                 detail="Agent already exists"
-
             )
 
 
@@ -145,43 +150,27 @@ def create_agent(
             agent_id=agent.id,
 
             enabled=(
-
                 memory_data.enabled
-
                 if memory_data
-
                 else True
-
             ),
 
             memory_type=(
-
                 memory_data.memory_type
-
                 if memory_data
-
                 else "LONG_TERM"
-
             ),
 
             max_context_tokens=(
-
                 memory_data.max_context_tokens
-
                 if memory_data
-
                 else 8000
-
             ),
 
             retention_days=(
-
                 memory_data.retention_days
-
                 if memory_data
-
                 else 365
-
             )
 
         )
@@ -189,29 +178,19 @@ def create_agent(
 
         db.add(memory)
 
-
-
         db.commit()
 
 
 
-        # IMPORTANT
-        # Reload with memory relationship
-
-        agent = load_agent(
+        return load_agent(
             db,
             agent.id
         )
 
 
-        return agent
-
-
-
     except HTTPException:
 
         raise
-
 
 
     except Exception as e:
@@ -228,8 +207,6 @@ def create_agent(
 
 
 
-
-
 # =====================================================
 # GET ALL AGENTS
 # =====================================================
@@ -243,32 +220,23 @@ def get_agents(
 ):
 
 
-    agents = (
+    return (
 
         db.query(Agent)
 
         .options(
-
             joinedload(
                 Agent.memory_config
             )
-
         )
 
         .order_by(
-
             Agent.created_at.desc()
-
         )
 
         .all()
 
     )
-
-
-    return agents
-
-
 
 
 
@@ -281,10 +249,9 @@ def get_agents(
     response_model=AgentResponse
 )
 def get_agent(
-    agent_id:int,
-    db:Session=Depends(get_db)
+    agent_id: int,
+    db: Session = Depends(get_db)
 ):
-
 
     agent = load_agent(
         db,
@@ -307,8 +274,6 @@ def get_agent(
 
 
 
-
-
 # =====================================================
 # UPDATE AGENT
 # =====================================================
@@ -318,11 +283,10 @@ def get_agent(
     response_model=AgentResponse
 )
 def update_agent(
-    agent_id:int,
-    data:AgentUpdate,
-    db:Session=Depends(get_db)
+    agent_id: int,
+    data: AgentUpdate,
+    db: Session = Depends(get_db)
 ):
-
 
     agent = load_agent(
         db,
@@ -341,11 +305,9 @@ def update_agent(
         )
 
 
-
     payload = data.model_dump(
         exclude_unset=True
     )
-
 
 
     memory_data = payload.pop(
@@ -354,19 +316,13 @@ def update_agent(
     )
 
 
-
-    for key,value in payload.items():
+    for key, value in payload.items():
 
         setattr(
-
             agent,
-
             key,
-
             value
-
         )
-
 
 
 
@@ -376,7 +332,7 @@ def update_agent(
         if agent.memory_config:
 
 
-            for key,value in memory_data.items():
+            for key, value in memory_data.items():
 
                 setattr(
 
@@ -392,29 +348,27 @@ def update_agent(
         else:
 
 
-            memory = AgentMemoryConfig(
+            db.add(
 
-                agent_id=agent.id,
+                AgentMemoryConfig(
 
-                **memory_data
+                    agent_id=agent.id,
+
+                    **memory_data
+
+                )
 
             )
-
-
-            db.add(memory)
 
 
 
     db.commit()
 
 
-
     return load_agent(
         db,
         agent_id
     )
-
-
 
 
 
@@ -427,8 +381,8 @@ def update_agent(
     response_model=AgentStatsResponse
 )
 def agent_stats(
-    agent_id:int,
-    db:Session=Depends(get_db)
+    agent_id: int,
+    db: Session = Depends(get_db)
 ):
 
 
@@ -437,9 +391,7 @@ def agent_stats(
         db.query(Agent)
 
         .filter(
-
             Agent.id == agent_id
-
         )
 
         .first()
@@ -477,17 +429,15 @@ def agent_stats(
     total = len(executions)
 
 
-
     blocked = sum(
 
         1
 
         for e in executions
 
-        if e.decision=="BLOCK"
+        if e.decision == "BLOCK"
 
     )
-
 
 
     average_trust = (
@@ -500,9 +450,7 @@ def agent_stats(
 
                 for e in executions
 
-            )
-
-            / total,
+            ) / total,
 
             2
 
@@ -513,7 +461,6 @@ def agent_stats(
         else 0
 
     )
-
 
 
     average_latency = (
@@ -526,9 +473,7 @@ def agent_stats(
 
                 for e in executions
 
-            )
-
-            / total,
+            ) / total,
 
             2
 
@@ -539,7 +484,6 @@ def agent_stats(
         else 0
 
     )
-
 
 
     total_cost = sum(
@@ -551,12 +495,11 @@ def agent_stats(
     )
 
 
-
     success_rate = (
 
         round(
 
-            ((total-blocked)/total)*100,
+            ((total - blocked) / total) * 100,
 
             2
 
@@ -567,7 +510,6 @@ def agent_stats(
         else 0
 
     )
-
 
 
     agent.total_executions = total
@@ -581,31 +523,29 @@ def agent_stats(
 
     return {
 
-        "agent_id":agent.id,
+        "agent_id": agent.id,
 
-        "agent_name":agent.name,
+        "agent_name": agent.name,
 
-        "model":agent.model,
+        "model": agent.model,
 
-        "provider":agent.provider,
+        "provider": agent.provider,
 
-        "status":agent.status,
+        "status": agent.status,
 
-        "total_executions":total,
+        "total_executions": total,
 
-        "average_trust":average_trust,
+        "average_trust": average_trust,
 
-        "success_rate":success_rate,
+        "success_rate": success_rate,
 
-        "blocked_count":blocked,
+        "blocked_count": blocked,
 
-        "average_latency_ms":average_latency,
+        "average_latency_ms": average_latency,
 
-        "total_cost_usd":total_cost
+        "total_cost_usd": total_cost
 
     }
-
-
 
 
 
@@ -617,14 +557,21 @@ def agent_stats(
     "/{agent_id}/disable"
 )
 def disable_agent(
-    agent_id:int,
-    db:Session=Depends(get_db)
+    agent_id: int,
+    db: Session = Depends(get_db)
 ):
 
+    agent = (
 
-    agent = db.query(Agent).filter(
-        Agent.id==agent_id
-    ).first()
+        db.query(Agent)
+
+        .filter(
+            Agent.id == agent_id
+        )
+
+        .first()
+
+    )
 
 
     if not agent:
@@ -638,22 +585,20 @@ def disable_agent(
         )
 
 
-    agent.status="DISABLED"
+    agent.status = "DISABLED"
 
     db.commit()
 
 
     return {
 
-        "message":"Agent disabled",
+        "message": "Agent disabled",
 
-        "agent_id":agent.id,
+        "agent_id": agent.id,
 
-        "status":agent.status
+        "status": agent.status
 
     }
-
-
 
 
 
@@ -665,15 +610,21 @@ def disable_agent(
     "/{agent_id}/enable"
 )
 def enable_agent(
-    agent_id:int,
-    db:Session=Depends(get_db)
+    agent_id: int,
+    db: Session = Depends(get_db)
 ):
 
+    agent = (
 
-    agent = db.query(Agent).filter(
-        Agent.id==agent_id
-    ).first()
+        db.query(Agent)
 
+        .filter(
+            Agent.id == agent_id
+        )
+
+        .first()
+
+    )
 
 
     if not agent:
@@ -687,18 +638,17 @@ def enable_agent(
         )
 
 
-    agent.status="ACTIVE"
-
+    agent.status = "ACTIVE"
 
     db.commit()
 
 
     return {
 
-        "message":"Agent enabled",
+        "message": "Agent enabled",
 
-        "agent_id":agent.id,
+        "agent_id": agent.id,
 
-        "status":agent.status
+        "status": agent.status
 
     }

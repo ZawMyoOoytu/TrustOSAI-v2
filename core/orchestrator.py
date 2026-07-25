@@ -5,6 +5,10 @@ from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 
 
+# =====================================================
+# EXISTING TRUSTOSAI ENGINES
+# =====================================================
+
 from engines.memory_engine import MemoryEngine
 from engines.governance_engine import GovernanceEngine
 from engines.router_engine import RouterEngine
@@ -15,6 +19,20 @@ from engines.cost_engine import CostEngine
 
 
 
+# =====================================================
+# MULTI MODEL ROUTING LAYER
+# =====================================================
+
+from router.model_registry import ModelRegistry
+
+from router.router_engine import (
+    RouterEngine as ModelRouterEngine
+)
+
+from router.provider_manager import ProviderManager
+
+
+
 
 
 class RuntimeOrchestrator:
@@ -22,13 +40,14 @@ class RuntimeOrchestrator:
 
     """
     =====================================================
-    TrustOSAI Adaptive Execution Orchestrator v5.0
+    TrustOSAI Adaptive Execution Orchestrator v6.0
     =====================================================
 
     Enterprise AI Governance Runtime
 
 
     Pipeline:
+
 
     Request
         |
@@ -45,6 +64,12 @@ class RuntimeOrchestrator:
     Agent Router
         |
         v
+    Adaptive Model Router
+        |
+        v
+    Provider Manager
+        |
+        v
     Execution Engine
         |
         v
@@ -57,23 +82,31 @@ class RuntimeOrchestrator:
     Telemetry
         |
         v
-    Audit + Memory Feedback
+    Audit Logging
+        |
+        v
+    Memory Feedback
 
 
 
     Features:
 
     - Agent Identity Propagation
-    - Model Routing
+    - Agent Routing
+    - Multi Model Routing
     - Provider Routing
     - Trust Evaluation
     - Risk Detection
     - Policy Enforcement
     - Execution Replay
+    - Token Telemetry
+    - Quality Evaluation
     - Cost Attribution
-    - Telemetry
-    - Memory Feedback
+    - Runtime Telemetry
+    - Audit Logging
+    - Memory Learning
 
+    =====================================================
     """
 
 
@@ -81,11 +114,18 @@ class RuntimeOrchestrator:
     def __init__(self):
 
 
+        # =================================================
+        # CORE TRUSTOSAI RUNTIME
+        # =================================================
+
+
         self.memory_engine = MemoryEngine()
 
 
         self.governance_engine = GovernanceEngine()
 
+
+        # Agent Router
 
         self.router_engine = RouterEngine()
 
@@ -100,6 +140,24 @@ class RuntimeOrchestrator:
 
 
         self.cost_engine = CostEngine()
+
+
+
+
+
+        # =================================================
+        # ADAPTIVE MULTI MODEL ROUTER
+        # =================================================
+
+
+        self.model_registry = ModelRegistry()
+
+
+        self.model_router_engine = ModelRouterEngine()
+
+
+        self.provider_manager = ProviderManager()
+
 
 
 
@@ -133,7 +191,8 @@ class RuntimeOrchestrator:
 
         provider=None
 
-    ) -> Dict[str,Any]:
+    ) -> Dict[str, Any]:
+
 
 
         start_time = time.perf_counter()
@@ -145,53 +204,74 @@ class RuntimeOrchestrator:
 
 
             # =================================================
-            # MEMORY CONTEXT
+            # 1. MEMORY CONTEXT
             # =================================================
 
 
-            context = self.memory_engine.retrieve_context(
+            context = (
 
-                task,
+                self.memory_engine
+                .retrieve_context(
 
-                db
+                    task,
+
+                    db
+
+                )
 
             )
+
 
 
 
             request = {
 
 
-                "task": task,
+                "task":
+
+                    task,
 
 
-                "context": context,
+                "context":
+
+                    context,
 
 
-                "user_role": user_role,
+                "user_role":
+
+                    user_role,
 
 
-                "agent": agent,
+                "agent":
+
+                    agent,
 
 
-                "model": model,
+                "model":
+
+                    model,
 
 
-                "provider": provider
+                "provider":
+
+                    provider
 
 
             }
 
 
 
+
+
             # =================================================
-            # GOVERNANCE ENGINE
+            # 2. GOVERNANCE ENGINE
             # =================================================
 
 
             decision, governance = (
 
-                self.governance_engine.evaluate_request(
+                self.governance_engine
+                .evaluate_request(
 
                     request,
 
@@ -200,6 +280,8 @@ class RuntimeOrchestrator:
                 )
 
             )
+
+
 
 
 
@@ -216,6 +298,7 @@ class RuntimeOrchestrator:
             )
 
 
+
             risk_score = float(
 
                 governance.get(
@@ -229,6 +312,7 @@ class RuntimeOrchestrator:
             )
 
 
+
             conflict_score = float(
 
                 governance.get(
@@ -240,12 +324,19 @@ class RuntimeOrchestrator:
                 )
 
             )
-                        # =================================================
-            # GOVERNANCE BLOCK
+
+
+
+
+
+
+            # =================================================
+            # 3. GOVERNANCE BLOCK
             # =================================================
 
 
             if decision == "BLOCK":
+
 
 
                 latency = (
@@ -257,6 +348,8 @@ class RuntimeOrchestrator:
                     start_time
 
                 ) * 1000
+
+
 
 
 
@@ -288,11 +381,9 @@ class RuntimeOrchestrator:
                         "GovernanceAgent",
 
 
-
                     "decision":
 
                         "BLOCK",
-
 
 
                     "trust_score":
@@ -300,11 +391,9 @@ class RuntimeOrchestrator:
                         trust_score,
 
 
-
                     "risk_score":
 
                         risk_score,
-
 
 
                     "conflict_score":
@@ -333,10 +422,14 @@ class RuntimeOrchestrator:
                     "cost":{
 
 
-                        "cost_usd":0,
+                        "cost_usd":
+
+                            0,
 
 
-                        "currency":"USD"
+                        "currency":
+
+                            "USD"
 
 
                     },
@@ -354,8 +447,13 @@ class RuntimeOrchestrator:
 
                         "latency_ms":
 
-                            round(latency,3),
+                            round(
 
+                                latency,
+
+                                3
+
+                            ),
 
 
                         "quality_score":
@@ -369,7 +467,13 @@ class RuntimeOrchestrator:
 
                     "runtime_ms":
 
-                        round(latency,3)
+                        round(
+
+                            latency,
+
+                            3
+
+                        )
 
 
                 }
@@ -402,77 +506,85 @@ class RuntimeOrchestrator:
 
 
             # =================================================
-            # AGENT ROUTING
+            # 4. AGENT ROUTING
             # =================================================
 
 
-            route = self.router_engine.select_optimal_agent(
+            route = (
+
+                self.router_engine
+                .select_optimal_agent(
 
 
 
-                {
+                    {
 
 
-                    "aggregated_trust":
+                        "aggregated_trust":
 
-                        trust_score,
-
-
-                    "decision":
-
-                        decision,
+                            trust_score,
 
 
-                    "risk_score":
+                        "decision":
 
-                        risk_score
-
-
-
-                },
+                            decision,
 
 
+                        "risk_score":
 
-                {
-
-
-                    "task":
-
-                        task,
+                            risk_score
 
 
-                    "requested_agent":
-
-                        agent,
-
-
-                    "requested_model":
-
-                        model,
-
-
-                    "requested_provider":
-
-                        provider
+                    },
 
 
 
-                }
+                    {
 
+
+                        "task":
+
+                            task,
+
+
+                        "requested_agent":
+
+                            agent,
+
+
+                        "requested_model":
+
+                            model,
+
+
+                        "requested_provider":
+
+                            provider
+
+
+                    }
+
+
+
+                )
 
             )
 
 
 
-
-            # fallback
 
             if not route:
 
 
-                route = agent or "GovernanceAgent"
+                route = (
 
+                    agent
 
+                    or
+
+                    "GovernanceAgent"
+
+                )
 
 
 
@@ -481,31 +593,162 @@ class RuntimeOrchestrator:
 
 
             # =================================================
-            # EXECUTION ENGINE
+            # 5. ADAPTIVE MODEL ROUTING
             # =================================================
 
 
-            execution_result = self.execution_engine.execute(
+            available_models = (
+
+                self.model_registry
+                .get_models()
+
+            )
 
 
 
-                route,
+
+            selected_model_result, model_ranking = (
+
+                self.model_router_engine
+                .select(
+
+                    available_models
+
+                )
+
+            )
 
 
-                task,
+
+
+            selected_model = (
+
+                selected_model_result
+                .get(
+
+                    "model"
+
+                )
+
+                if isinstance(
+
+                    selected_model_result,
+
+                    dict
+
+                )
+
+                else None
+
+            )
 
 
 
-                execution_id=execution_id,
+
+            routing_score = (
+
+                selected_model_result
+                .get(
+
+                    "routing_score",
+
+                    0
+
+                )
+
+                if isinstance(
+
+                    selected_model_result,
+
+                    dict
+
+                )
+
+                else 0
+
+            )
 
 
 
-                model=model,
+
+            if not selected_model:
 
 
-                provider=provider
+                selected_model = {
 
 
+                    "name":
+
+                        model or "llama-3-70b",
+
+
+
+                    "provider":
+
+                        provider or "local"
+
+
+                }
+
+
+
+
+
+            selected_model_name = (
+
+                selected_model
+                .get(
+
+                    "name"
+
+                )
+
+            )
+
+
+
+
+            selected_provider = (
+
+                selected_model
+                .get(
+
+                    "provider"
+
+                )
+
+            )
+                        # =================================================
+            # 6. EXECUTION ENGINE
+            # =================================================
+
+
+            execution_result = (
+
+                self.execution_engine
+                .execute(
+
+
+                    route,
+
+
+                    task,
+
+
+
+                    execution_id=execution_id,
+
+
+
+                    model=selected_model_name,
+
+
+
+                    provider=selected_provider
+
+
+
+                )
 
             )
 
@@ -513,15 +756,37 @@ class RuntimeOrchestrator:
 
 
 
-            if not isinstance(execution_result,dict):
+            if not isinstance(
+
+                execution_result,
+
+                dict
+
+            ):
 
 
-                execution_result={
+                execution_result = {
 
 
                     "response":
 
-                        str(execution_result)
+                        str(
+
+                            execution_result
+
+                        ),
+
+
+
+                    "model":
+
+                        selected_model_name,
+
+
+
+                    "provider":
+
+                        selected_provider
 
 
                 }
@@ -532,20 +797,24 @@ class RuntimeOrchestrator:
 
 
 
-            # =================================================
-            # MODEL PROVIDER RESOLUTION
-            # =================================================
 
+            # =================================================
+            # 7. MODEL PROVIDER RESOLUTION
+            # =================================================
 
 
             final_model = (
 
-
-                execution_result.get(
+                execution_result
+                .get(
 
                     "model"
 
                 )
+
+                or
+
+                selected_model_name
 
                 or
 
@@ -555,20 +824,24 @@ class RuntimeOrchestrator:
 
                 "unknown"
 
-
             )
+
 
 
 
 
             final_provider = (
 
-
-                execution_result.get(
+                execution_result
+                .get(
 
                     "provider"
 
                 )
+
+                or
+
+                selected_provider
 
                 or
 
@@ -578,7 +851,6 @@ class RuntimeOrchestrator:
 
                 "local"
 
-
             )
 
 
@@ -588,32 +860,46 @@ class RuntimeOrchestrator:
 
 
 
+
             # =================================================
-            # TOKEN TELEMETRY
+            # 8. TOKEN TELEMETRY
             # =================================================
 
 
+            token_data = (
 
-            token_data = execution_result.get(
+                execution_result
+                .get(
 
-                "token_telemetry",
+                    "token_telemetry",
 
-                {}
+                    {}
+
+                )
 
             )
 
 
 
-            if not isinstance(token_data,dict):
 
-                token_data={}
+            if not isinstance(
+
+                token_data,
+
+                dict
+
+            ):
+
+                token_data = {}
+
 
 
 
 
             prompt_tokens = int(
 
-                token_data.get(
+                token_data
+                .get(
 
                     "prompt_tokens",
 
@@ -628,7 +914,8 @@ class RuntimeOrchestrator:
 
             completion_tokens = int(
 
-                token_data.get(
+                token_data
+                .get(
 
                     "completion_tokens",
 
@@ -637,6 +924,7 @@ class RuntimeOrchestrator:
                 )
 
             )
+
 
 
 
@@ -657,15 +945,17 @@ class RuntimeOrchestrator:
 
 
 
-            # =================================================
-            # QUALITY SCORE
-            # =================================================
 
+
+            # =================================================
+            # 9. QUALITY EVALUATION
+            # =================================================
 
 
             quality_score = float(
 
-                execution_result.get(
+                execution_result
+                .get(
 
                     "quality_score",
 
@@ -677,16 +967,24 @@ class RuntimeOrchestrator:
 
 
 
+
+
             if quality_score == 0:
 
 
-                nested_result = execution_result.get(
+                nested_result = (
 
-                    "result",
+                    execution_result
+                    .get(
 
-                    {}
+                        "result",
+
+                        {}
+
+                    )
 
                 )
+
 
 
 
@@ -699,13 +997,22 @@ class RuntimeOrchestrator:
                 ):
 
 
-                    quality_score=float(
 
-                        nested_result.get(
+                    quality_score = float(
+
+                        nested_result
+                        .get(
 
                             "quality_score",
 
-                            0
+                            nested_result
+                            .get(
+
+                                "quality_score_qt",
+
+                                0
+
+                            )
 
                         )
 
@@ -716,8 +1023,7 @@ class RuntimeOrchestrator:
 
 
 
-
-            quality_score=round(
+            quality_score = round(
 
                 quality_score,
 
@@ -732,69 +1038,136 @@ class RuntimeOrchestrator:
 
 
 
+
             # =================================================
-            # COST ENGINE
+            # 10. COST ATTRIBUTION
             # =================================================
 
 
+            cost = (
 
-            cost = self.cost_engine.calculate(
-
-
-
-                model=final_model,
+                self.cost_engine
+                .calculate(
 
 
 
-                prompt_tokens=prompt_tokens,
+                    model=
+
+                        final_model,
 
 
 
-                completion_tokens=completion_tokens
+                    prompt_tokens=
+
+                        prompt_tokens,
 
 
+
+                    completion_tokens=
+
+                        completion_tokens
+
+
+
+                )
 
             )
-                        # =================================================
-            # TELEMETRY COLLECTION
+
+
+
+
+
+
+
+
+
+            # =================================================
+            # 11. TELEMETRY COLLECTION
             # =================================================
 
 
-            telemetry = self.telemetry_engine.collect(
+            telemetry = (
+
+                self.telemetry_engine
+                .collect(
 
 
-                task,
-
-
-                {
-
-
-                    "agent": route,
-
-
-                    "model": final_model,
-
-
-                    "provider": final_provider,
-
-
-                    "trust_score": trust_score,
-
-
-                    "risk_score": risk_score,
-
-
-                    "decision": decision,
-
-
-                    "quality_score": quality_score
+                    task,
 
 
 
-                }
+                    {
 
+
+                        "agent":
+
+                            route,
+
+
+
+                        "model":
+
+                            final_model,
+
+
+
+                        "provider":
+
+                            final_provider,
+
+
+
+                        "trust_score":
+
+                            trust_score,
+
+
+
+                        "risk_score":
+
+                            risk_score,
+
+
+
+                        "decision":
+
+                            decision,
+
+
+
+                        "quality_score":
+
+                            quality_score,
+
+
+
+                        "routing_score":
+
+                            routing_score,
+
+
+
+                        "routing_strategy":
+
+                            "TRUST_OPTIMIZED",
+
+
+
+                        "tokens":
+
+                            total_tokens
+
+
+                    }
+
+
+
+                )
 
             )
+
+
+
 
 
 
@@ -817,21 +1190,26 @@ class RuntimeOrchestrator:
 
 
 
+
             # =================================================
-            # MEMORY FEEDBACK UPDATE
+            # 12. MEMORY FEEDBACK UPDATE
             # =================================================
 
 
             self.memory_engine.update_memory(
 
 
+
                 db,
+
 
 
                 task,
 
 
+
                 execution_result,
+
 
 
                 quality_score
@@ -847,8 +1225,9 @@ class RuntimeOrchestrator:
 
 
 
+
             # =================================================
-            # AUDIT LOGGING
+            # 13. AUDIT LOGGING
             # =================================================
 
 
@@ -859,13 +1238,17 @@ class RuntimeOrchestrator:
                 task,
 
 
+
                 trust_score,
+
 
 
                 risk_score,
 
 
+
                 governance,
+
 
 
                 execution_result
@@ -881,8 +1264,9 @@ class RuntimeOrchestrator:
 
 
 
+
             # =================================================
-            # FINAL RUNTIME RESPONSE
+            # 14. FINAL RUNTIME RESPONSE
             # =================================================
 
 
@@ -944,6 +1328,8 @@ class RuntimeOrchestrator:
 
 
 
+
+
                 "model":
 
                     final_model,
@@ -958,8 +1344,58 @@ class RuntimeOrchestrator:
 
 
 
-                "token_telemetry":{
 
+
+                "routing":{
+
+
+                    "strategy":
+
+                        "TRUST_OPTIMIZED",
+
+
+
+                    "selected":{
+
+
+                        "model":
+
+                            final_model,
+
+
+
+                        "provider":
+
+                            final_provider,
+
+
+
+                        "routing_score":
+
+                            routing_score
+
+
+
+                    },
+
+
+
+                    "ranking":
+
+                        model_ranking
+
+
+
+                },
+
+
+
+
+
+
+
+
+                "token_telemetry":{
 
 
                     "prompt_tokens":
@@ -985,9 +1421,15 @@ class RuntimeOrchestrator:
 
 
 
+
+
+
                 "quality_score":
 
                     quality_score,
+
+
+
 
 
 
@@ -999,9 +1441,15 @@ class RuntimeOrchestrator:
 
 
 
+
+
+
                 "cost":
 
                     cost,
+
+
+
 
 
 
@@ -1013,13 +1461,21 @@ class RuntimeOrchestrator:
 
 
 
-                "telemetry":{
 
+
+
+                "telemetry":{
 
 
                     "latency_ms":
 
-                        round(latency,3),
+                        round(
+
+                            latency,
+
+                            3
+
+                        ),
 
 
 
@@ -1034,14 +1490,22 @@ class RuntimeOrchestrator:
 
 
 
+
+
+
                 "runtime_ms":
 
-                    round(latency,3)
+                    round(
+
+                        latency,
+
+                        3
+
+                    )
 
 
 
             }
-
 
 
 
@@ -1068,6 +1532,96 @@ class RuntimeOrchestrator:
                 start_time
 
             ) * 1000
+
+
+
+
+
+            error_message = str(e)
+
+
+
+
+
+            try:
+
+
+
+                self.audit_engine.record(
+
+
+
+                    task,
+
+
+
+                    0.0,
+
+
+
+                    1.0,
+
+
+
+                    {
+
+
+                        "decision":
+
+                            "BLOCK",
+
+
+
+                        "reason":
+
+                            "Runtime Exception",
+
+
+
+                        "error":
+
+                            error_message
+
+
+
+                    },
+
+
+
+                    {
+
+
+                        "status":
+
+                            "FAILED",
+
+
+
+                        "error":
+
+                            error_message
+
+
+
+                    }
+
+
+
+                )
+
+
+
+            except Exception:
+
+
+
+                pass
+
+
+
+
+
+
 
 
 
@@ -1099,6 +1653,12 @@ class RuntimeOrchestrator:
 
 
 
+                "route":
+
+                    "RuntimeFailureHandler",
+
+
+
                 "decision":
 
                     "BLOCK",
@@ -1123,30 +1683,114 @@ class RuntimeOrchestrator:
 
 
 
-                "result":{
+                "model":
+
+                    model or "unknown",
 
 
-                    "error":
 
-                        str(e)
+                "provider":
+
+                    provider or "unknown",
+
+
+
+
+
+                "routing":{
+
+
+                    "strategy":
+
+                        "FAIL_SAFE",
+
+
+
+                    "selected":{
+
+
+                        "model":
+
+                            model or "unknown",
+
+
+
+                        "provider":
+
+                            provider or "unknown"
+
+
+
+                    }
 
 
 
                 },
+
+
+
+
+
+                "result":{
+
+
+                    "status":
+
+                        "FAILED",
+
+
+
+                    "error":
+
+                        error_message
+
+
+
+                },
+
+
 
 
 
                 "cost":{
 
 
-                    "cost_usd":0,
+                    "cost_usd":
+
+                        0,
 
 
-                    "currency":"USD"
+
+                    "currency":
+
+                        "USD"
 
 
 
                 },
+
+
+
+
+
+                "governance":{
+
+
+                    "decision":
+
+                        "BLOCK",
+
+
+
+                    "reason":
+
+                        "Runtime safety fallback"
+
+
+
+                },
+
+
 
 
 
@@ -1155,7 +1799,13 @@ class RuntimeOrchestrator:
 
                     "latency_ms":
 
-                        round(latency,3),
+                        round(
+
+                            latency,
+
+                            3
+
+                        ),
 
 
 
@@ -1169,14 +1819,21 @@ class RuntimeOrchestrator:
 
 
 
+
+
                 "runtime_ms":
 
-                    round(latency,3)
+                    round(
+
+                        latency,
+
+                        3
+
+                    )
 
 
 
             }
-
 
 
 
@@ -1194,5 +1851,9 @@ orchestrator = RuntimeOrchestrator()
 
 
 
-# Backward Compatibility
+# =====================================================
+# BACKWARD COMPATIBILITY
+# =====================================================
+
+
 Orchestrator = RuntimeOrchestrator

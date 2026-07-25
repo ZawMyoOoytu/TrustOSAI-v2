@@ -3,22 +3,24 @@ const BASE_URL = "http://127.0.0.1:8000";
 
 
 // =====================================================
-// GENERIC REQUEST HANDLER
+// GENERIC REQUEST
 // =====================================================
 
-async function apiRequest(
-    url,
-    options = {}
-) {
+async function request(
+    endpoint,
+    options={}
+){
 
     const response = await fetch(
 
-        `${BASE_URL}${url}`,
+        `${BASE_URL}${endpoint}`,
 
         {
-            headers: {
 
-                "Content-Type": "application/json"
+            headers:{
+
+                "Content-Type":
+                "application/json"
 
             },
 
@@ -29,13 +31,19 @@ async function apiRequest(
     );
 
 
-    if (!response.ok) {
 
-        const error = await response.text();
+    if(!response.ok){
 
-        throw new Error(error || "API Request Failed");
+        const error =
+            await response.text();
+
+
+        throw new Error(
+            error || "API Request Failed"
+        );
 
     }
+
 
 
     return await response.json();
@@ -47,19 +55,121 @@ async function apiRequest(
 
 
 // =====================================================
-// DASHBOARD STATISTICS
+// DEFAULT API CLIENT
+// execution.js အတွက်
 // =====================================================
 
 
-export async function getStats() {
+const api = {
 
 
-    return apiRequest(
+    get(endpoint){
 
-        "/stats/"
+        return request(endpoint)
+        .then(data=>({
 
+            data
+
+        }));
+
+    },
+
+
+
+    post(endpoint,body){
+
+        return request(
+
+            endpoint,
+
+            {
+
+                method:"POST",
+
+                body:
+                JSON.stringify(body)
+
+            }
+
+        )
+        .then(data=>({
+
+            data
+
+        }));
+
+    },
+
+
+
+    patch(endpoint,body={}){
+
+        return request(
+
+            endpoint,
+
+            {
+
+                method:"PATCH",
+
+                body:
+                JSON.stringify(body)
+
+            }
+
+        )
+        .then(data=>({
+
+            data
+
+        }));
+
+    },
+
+
+
+    delete(endpoint){
+
+        return request(
+
+            endpoint,
+
+            {
+
+                method:"DELETE"
+
+            }
+
+        )
+        .then(data=>({
+
+            data
+
+        }));
+
+    }
+
+
+};
+
+
+
+export default api;
+
+
+
+
+
+
+// =====================================================
+// DASHBOARD
+// =====================================================
+
+export async function getStats(){
+
+    return request(
+        "/api/stats/"
     );
-
 
 }
 
@@ -69,168 +179,35 @@ export async function getStats() {
 
 
 // =====================================================
-// EXECUTIONS
+// AGENTS
 // =====================================================
 
 
-export async function getExecutions() {
+export async function getAgents(){
 
-
-    return apiRequest(
-
-        "/executions/"
-
-    );
-
-
-}
-
-
-
-
-
-
-export async function getExecution(id) {
-
-
-    return apiRequest(
-
-        `/executions/${id}`
-
-    );
-
-
-}
-
-
-
-
-
-
-export async function deleteExecution(id) {
-
-
-    return apiRequest(
-
-        `/executions/${id}`,
-
-        {
-
-            method:"DELETE"
-
-        }
-
-    );
-
-
-}
-
-
-
-
-
-
-export async function deleteAllExecutions() {
-
-
-    return apiRequest(
-
-        "/executions/",
-
-        {
-
-            method:"DELETE"
-
-        }
-
-    );
-
-
-}
-
-
-
-
-
-
-// =====================================================
-// EXECUTION RUN
-// =====================================================
-
-
-export async function executeTask(data) {
-
-
-    return apiRequest(
-
-        "/api/execution/",
-
-        {
-
-            method:"POST",
-
-            body:JSON.stringify(data)
-
-        }
-
-    );
-
-
-}
-
-
-
-
-
-
-// =====================================================
-// AGENT REGISTRY
-// =====================================================
-
-
-
-export async function getAgents() {
-
-
-    return apiRequest(
-
+    return request(
         "/api/agents/"
-
     );
-
 
 }
 
 
 
 
+export async function getAgent(id){
 
-
-
-
-export async function getAgent(id) {
-
-
-    return apiRequest(
-
+    return request(
         `/api/agents/${id}`
-
     );
-
 
 }
 
 
 
 
+export async function createAgent(data){
 
-
-
-
-export async function createAgent(agentData) {
-
-
-    return apiRequest(
+    return request(
 
         "/api/agents/",
 
@@ -238,32 +215,24 @@ export async function createAgent(agentData) {
 
             method:"POST",
 
-            body:JSON.stringify(agentData)
+            body:
+            JSON.stringify(data)
 
         }
 
     );
-
 
 }
 
 
 
 
-
-
-
-
 export async function updateAgent(
-
     id,
+    data
+){
 
-    agentData
-
-) {
-
-
-    return apiRequest(
+    return request(
 
         `/api/agents/${id}`,
 
@@ -271,12 +240,12 @@ export async function updateAgent(
 
             method:"PATCH",
 
-            body:JSON.stringify(agentData)
+            body:
+            JSON.stringify(data)
 
         }
 
     );
-
 
 }
 
@@ -284,38 +253,9 @@ export async function updateAgent(
 
 
 
+export async function enableAgent(id){
 
-
-
-export async function disableAgent(id) {
-
-
-    return apiRequest(
-
-        `/api/agents/${id}/disable`,
-
-        {
-
-            method:"PATCH"
-
-        }
-
-    );
-
-
-}
-
-
-
-
-
-
-
-
-export async function enableAgent(id) {
-
-
-    return apiRequest(
+    return request(
 
         `/api/agents/${id}/enable`,
 
@@ -327,6 +267,25 @@ export async function enableAgent(id) {
 
     );
 
+}
+
+
+
+
+
+export async function disableAgent(id){
+
+    return request(
+
+        `/api/agents/${id}/disable`,
+
+        {
+
+            method:"PATCH"
+
+        }
+
+    );
 
 }
 
@@ -334,21 +293,15 @@ export async function enableAgent(id) {
 
 
 
+export async function getAgentStats(id){
 
-
-
-export async function getAgentStats(id) {
-
-
-    return apiRequest(
+    return request(
 
         `/api/agents/${id}/stats`
 
     );
 
-
 }
-
 
 
 
@@ -359,66 +312,13 @@ export async function getAgentStats(id) {
 // POLICY
 // =====================================================
 
+export async function getPolicy(){
 
-export async function getPolicy() {
-
-
-    return apiRequest(
-
-        "/policy/"
-
+    return request(
+        "/api/policy/"
     );
 
-
 }
-
-
-
-
-
-
-
-// =====================================================
-// TRUST EXPLANATION
-// =====================================================
-
-
-export async function getTrustExplanation(id) {
-
-
-    return apiRequest(
-
-        `/trust/explanation/${id}`
-
-    );
-
-
-}
-
-
-
-
-
-
-
-// =====================================================
-// DECISION REASONING
-// =====================================================
-
-
-export async function getReasoning(id) {
-
-
-    return apiRequest(
-
-        `/reasoning/${id}`
-
-    );
-
-
-}
-
-
 
 
 
@@ -428,19 +328,13 @@ export async function getReasoning(id) {
 // HEALTH
 // =====================================================
 
+export async function getHealth(){
 
-export async function getHealth() {
-
-
-    return apiRequest(
-
-        "/health/"
-
+    return request(
+        "/api/health/"
     );
 
-
 }
-
 
 
 
@@ -450,15 +344,10 @@ export async function getHealth() {
 // ROOT
 // =====================================================
 
+export async function getRoot(){
 
-export async function getRoot() {
-
-
-    return apiRequest(
-
+    return request(
         "/"
-
     );
-
 
 }

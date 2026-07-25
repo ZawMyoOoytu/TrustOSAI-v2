@@ -1,11 +1,12 @@
 export default function RuntimeTrace({
 
-    trace
+    trace,
+    execution
 
-}){
+}) {
 
 
-    if(!trace){
+    if(!trace && !execution){
 
         return null;
 
@@ -13,8 +14,267 @@ export default function RuntimeTrace({
 
 
 
-    const output =
-    trace.output || {};
+
+
+
+
+    // =====================================
+    // SAFE PARSER
+    // =====================================
+
+
+    function parse(value){
+
+
+        if(!value){
+
+            return {};
+
+        }
+
+
+
+        if(typeof value === "object"){
+
+            return value;
+
+        }
+
+
+
+        try{
+
+            return JSON.parse(value);
+
+        }
+
+        catch{
+
+            return {};
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // NORMALIZE TRACE DATA
+    // =====================================
+
+
+    const parsedTrace =
+
+
+        parse(
+
+            trace
+
+        );
+
+
+
+
+
+
+
+
+    const executionResult =
+
+
+        parse(
+
+            execution?.result
+
+        );
+
+
+
+
+
+
+
+
+
+    const normalizedTrace =
+
+
+        parsedTrace.trace
+
+        ??
+
+        parsedTrace.result?.trace
+
+        ??
+
+        parsedTrace.result?.result?.trace
+
+        ??
+
+        executionResult.trace
+
+        ??
+
+        executionResult.result?.trace
+
+        ??
+
+        {};
+
+
+
+
+
+
+
+
+
+    const traceOutput =
+
+
+        normalizedTrace.output
+
+        ??
+
+        executionResult.output
+
+        ??
+
+        executionResult.result
+
+        ??
+
+        {};
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // VALUES
+    // =====================================
+
+
+    const engine =
+
+
+        normalizedTrace.engine
+
+        ??
+
+        "ExecutionEngine";
+
+
+
+
+
+
+
+
+    const status =
+
+
+        traceOutput.status
+
+        ??
+
+        executionResult.status
+
+        ??
+
+        execution?.status
+
+        ??
+
+        "UNKNOWN";
+
+
+
+
+
+
+
+
+    const model =
+
+
+        traceOutput.model
+
+        ??
+
+        executionResult.model
+
+        ??
+
+        execution?.model
+
+        ??
+
+        "N/A";
+
+
+
+
+
+
+
+
+    const latency =
+
+
+        normalizedTrace.latency_ms
+
+        ??
+
+        traceOutput.latency_ms
+
+        ??
+
+        executionResult.runtime_ms
+
+        ??
+
+        execution?.runtime_ms
+
+        ??
+
+        0;
+
+
+
+
+
+
+
+
+    const timestamp =
+
+
+        normalizedTrace.timestamp
+
+        ??
+
+        execution?.created_at
+
+        ??
+
+        null;
+
+
+
+
+
 
 
 
@@ -22,13 +282,22 @@ export default function RuntimeTrace({
     return (
 
 
+
         <div className="trace-card">
 
 
 
+
+
+
+
             <h2>
+
                 🔍 Runtime Trace
+
             </h2>
+
+
 
 
 
@@ -42,20 +311,26 @@ export default function RuntimeTrace({
 
 
 
+
+
                 <p>
 
+
                     <span>
+
                         Engine
+
                     </span>
 
 
+
+
                     <strong>
-                        {
-                            trace.engine
-                            ||
-                            "Unknown"
-                        }
+
+                        {engine}
+
                     </strong>
+
 
 
                 </p>
@@ -70,31 +345,53 @@ export default function RuntimeTrace({
 
                 <p>
 
+
                     <span>
+
                         Status
+
                     </span>
+
+
+
 
 
                     <strong
 
-                    className={
-                        output.status === "COMPLETED"
-                        ?
-                        "status-success"
-                        :
-                        "status-error"
-                    }
+
+                        className={
+
+
+                            status === "COMPLETED"
+
+                            ||
+
+                            status === "SUCCESS"
+
+
+                            ?
+
+
+                            "status-success"
+
+
+                            :
+
+
+                            "status-error"
+
+
+                        }
+
 
                     >
 
-                    {
-                        output.status
-                        ||
-                        "UNKNOWN"
-                    }
+
+                        {status}
 
 
                     </strong>
+
 
 
                 </p>
@@ -107,20 +404,28 @@ export default function RuntimeTrace({
 
 
 
+
+
+
                 <p>
 
+
                     <span>
+
                         Model
+
                     </span>
 
 
+
+
+
                     <strong>
-                        {
-                            output.model
-                            ||
-                            "N/A"
-                        }
+
+                        {model}
+
                     </strong>
+
 
 
                 </p>
@@ -133,27 +438,49 @@ export default function RuntimeTrace({
 
 
 
+
+
+
                 <p>
 
+
                     <span>
+
                         Latency
+
                     </span>
 
 
+
+
+
                     <strong>
+
+
                         {
-                        Number(
-                            trace.latency_ms || 0
-                        )
-                        .toFixed(2)
+
+                            Number(
+
+                                latency
+
+                            )
+
+                            .toFixed(3)
+
 
                         }
 
                         ms
+
+
                     </strong>
 
 
+
                 </p>
+
+
+
 
 
 
@@ -165,24 +492,46 @@ export default function RuntimeTrace({
 
                 <p>
 
+
                     <span>
+
                         Timestamp
+
                     </span>
+
+
+
 
 
                     <strong>
 
+
                     {
-                        trace.timestamp
+
+
+                        timestamp
+
+
                         ?
+
+
                         new Date(
-                            trace.timestamp
+
+                            timestamp
+
                         )
+
                         .toLocaleString()
+
+
 
                         :
 
+
+
                         "N/A"
+
+
 
                     }
 
@@ -190,7 +539,10 @@ export default function RuntimeTrace({
                     </strong>
 
 
+
                 </p>
+
+
 
 
 
@@ -207,10 +559,22 @@ export default function RuntimeTrace({
 
 
 
-            {/* Execution Pipeline */}
+
+
+
+            {/* =========================
+                EXECUTION PIPELINE
+            ========================== */}
+
+
+
 
 
             <div className="execution-pipeline">
+
+
+
+
 
 
 
@@ -222,11 +586,15 @@ export default function RuntimeTrace({
 
 
 
+
+
                 <div className="pipeline-arrow">
 
                     ↓
 
                 </div>
+
+
 
 
 
@@ -242,11 +610,14 @@ export default function RuntimeTrace({
 
 
 
+
                 <div className="pipeline-arrow">
 
                     ↓
 
                 </div>
+
+
 
 
 
@@ -262,11 +633,14 @@ export default function RuntimeTrace({
 
 
 
+
                 <div className="pipeline-arrow">
 
                     ↓
 
                 </div>
+
+
 
 
 
@@ -282,11 +656,14 @@ export default function RuntimeTrace({
 
 
 
+
                 <div className="pipeline-arrow">
 
                     ↓
 
                 </div>
+
+
 
 
 
@@ -300,6 +677,10 @@ export default function RuntimeTrace({
 
 
 
+
+
+
+
             </div>
 
 
@@ -309,7 +690,77 @@ export default function RuntimeTrace({
 
 
 
+
+
+
+
+            {/* DEBUG TRACE JSON */}
+
+
+            {
+
+
+                Object.keys(normalizedTrace).length > 0 &&
+
+
+
+                <details
+
+                    className="json-container"
+
+                >
+
+
+
+                    <summary>
+
+                        🔎 Raw Trace Data
+
+                    </summary>
+
+
+
+
+
+                    <pre
+
+                        className="json-viewer"
+
+                    >
+
+
+                    {
+
+                        JSON.stringify(
+
+                            normalizedTrace,
+
+                            null,
+
+                            2
+
+                        )
+
+                    }
+
+
+                    </pre>
+
+
+
+                </details>
+
+
+            }
+
+
+
+
+
+
+
         </div>
+
 
 
     );

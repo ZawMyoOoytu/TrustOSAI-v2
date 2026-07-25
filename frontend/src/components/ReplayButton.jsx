@@ -1,105 +1,192 @@
-import {useState} from "react";
+import { useState } from "react";
 
 
-import {
-executeTask
-}
-from "../api/client";
+const API = "http://localhost:8000/api";
 
 
 
 export default function ReplayButton({
 
-task
+    executionId
 
 }){
 
 
-const [loading,setLoading]=useState(false);
-
-
-
-async function replay(){
-
-
-try{
-
-
-setLoading(true);
-
-
-const result = await executeTask(task);
-
-
-
-alert(
-
-"New Execution Created: "
-
-+
-
-result.execution_id
-
-);
-
-
-
-}
-
-catch(err){
-
-
-alert(err.message);
-
-
-}
-
-finally{
-
-
-setLoading(false);
-
-
-}
-
-
-
-}
+    const [
+        loading,
+        setLoading
+    ] = useState(false);
 
 
 
 
-return(
-
-<button
-
-className="replay-button"
-
-onClick={replay}
-
-disabled={loading}
-
->
-
-{
-
-loading
-
-?
-
-"Running..."
-
-:
-
-"⚡ Replay Execution"
-
-}
+    async function replay(){
 
 
-</button>
+        try{
 
 
-);
+            setLoading(true);
+
+
+
+            const response =
+
+            await fetch(
+
+                `${API}/replay/${executionId}`,
+
+                {
+
+                    method:"POST",
+
+                    headers:{
+
+                        "Content-Type":
+                        "application/json"
+
+                    }
+
+                }
+
+            );
+
+
+
+
+
+            if(!response.ok){
+
+
+                throw new Error(
+
+                    "Replay execution failed"
+
+                );
+
+
+            }
+
+
+
+
+
+
+            const data =
+
+            await response.json();
+
+
+
+
+
+
+            alert(
+
+                "Replay Created: "
+
+                +
+
+                (
+
+                    data.replay_result?.execution_id
+
+                    ??
+
+                    data.execution_id
+
+                )
+
+            );
+
+
+
+            window.location.reload();
+
+
+
+        }
+
+
+        catch(err){
+
+
+            console.error(
+
+                "Replay Error",
+
+                err
+
+            );
+
+
+            alert(
+
+                err.message
+
+            );
+
+
+        }
+
+
+
+        finally{
+
+
+            setLoading(false);
+
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+    return(
+
+
+        <button
+
+
+            className="replay-button"
+
+
+            onClick={replay}
+
+
+            disabled={loading}
+
+
+        >
+
+
+            {
+
+
+                loading
+
+                ?
+
+                "Running..."
+
+                :
+
+                "🔁 Replay Execution"
+
+
+            }
+
+
+        </button>
+
+
+    );
 
 
 }

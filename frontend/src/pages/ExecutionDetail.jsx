@@ -58,72 +58,67 @@ import "../styles/ExecutionDetail.css";
 
 
 
+// ======================================
+// API
+// ======================================
+
+const API =
+"http://localhost:8000/api";
+
+
 
 
 
 export default function ExecutionDetail(){
 
 
-    const {id}=useParams();
-
-    const navigate=useNavigate();
+    const {id} = useParams();
 
 
-
-    const [execution,setExecution]=useState(null);
-
-
-    const [replayData,setReplayData]=useState(null);
-
-
-    const [replayMode,setReplayMode]=useState(false);
-
-
-
-    const [
-        trustExplanation,
-        setTrustExplanation
-    ] = useState(null);
-
-
-
-    const [
-        decisionReasoning,
-        setDecisionReasoning
-    ] = useState(null);
+    const navigate = useNavigate();
 
 
 
 
-
-    const [
-        replayTrustExplanation,
-        setReplayTrustExplanation
-    ] = useState(null);
+    const [execution,setExecution] =
+    useState(null);
 
 
-
-    const [
-        replayDecisionReasoning,
-        setReplayDecisionReasoning
-    ] = useState(null);
+    const [replayExecution,setReplayExecution] =
+    useState(null);
 
 
+    const [replayMode,setReplayMode] =
+    useState(false);
+
+
+    const [loading,setLoading] =
+    useState(true);
+
+
+    const [error,setError] =
+    useState("");
+
+
+    const [replayError,setReplayError] =
+    useState("");
 
 
 
-    const [
-        loading,
-        setLoading
-    ] = useState(true);
+    const [trustExplanation,setTrustExplanation] =
+    useState(null);
 
 
+    const [decisionReasoning,setDecisionReasoning] =
+    useState(null);
 
-    const [
-        error,
-        setError
-    ] = useState("");
 
+    const [replayTrustExplanation,setReplayTrustExplanation] =
+    useState(null);
+
+
+    const [replayDecisionReasoning,setReplayDecisionReasoning] =
+    useState(null);
 
 
 
@@ -132,8 +127,9 @@ export default function ExecutionDetail(){
 
 
     // ======================================
-    // SAFE JSON
+    // JSON PARSER
     // ======================================
+
 
     function parseJSON(value){
 
@@ -143,7 +139,6 @@ export default function ExecutionDetail(){
             return {};
 
         }
-
 
 
         if(typeof value==="object"){
@@ -168,7 +163,6 @@ export default function ExecutionDetail(){
 
         }
 
-
     }
 
 
@@ -183,91 +177,273 @@ export default function ExecutionDetail(){
     // NORMALIZER
     // ======================================
 
+
     function normalizeExecution(data){
 
 
-        const result =
-            parseJSON(data.result);
+        if(!data){
+
+            return null;
+
+        }
+
+
+
+        /*
+        
+        Normal:
+
+        {
+          execution_id:1,
+          result:{}
+        }
+
+
+        Replay:
+
+        {
+          replay_result:{
+              execution_id:166,
+              result:{}
+          }
+        }
+
+        */
+
+
+        const payload =
+
+
+            data.replay_result
+
+            ??
+
+            data.result?.execution_id
+
+            ?
+
+            data.result
+
+            :
+
+            data;
+
+
+
+
+
+
+
+        const output =
+
+
+            parseJSON(
+
+                payload.result
+
+            );
+
+
+
+
 
 
 
         return {
 
 
-            ...data,
+            ...payload,
 
 
 
             execution_id:
 
-                data.execution_id
+
+                payload.execution_id
+
                 ??
-                data.id,
+
+                payload.id
+
+                ??
+
+                data.replay_execution_id
+
+                ??
+
+                null,
 
 
 
-            model:
 
-                data.model
+
+
+
+            task:
+
+
+                payload.task
+
                 ??
-                result.model
+
+                output.task
+
                 ??
-                result.trace?.output?.model
-                ??
-                data.agent
-                ??
-                "unknown",
+
+                "No task provided",
+
+
 
 
 
 
             agent:
 
-                data.agent
+
+                payload.agent
+
                 ??
+
+                output.agent
+
+                ??
+
                 "unknown",
+
+
+
+
+
+
+
+
+            model:
+
+
+                payload.model
+
+                ??
+
+                output.model
+
+                ??
+
+                output.trace?.output?.model
+
+                ??
+
+                "unknown",
+
+
+
+
 
 
 
 
             provider:
 
-                data.provider
+
+                payload.provider
+
                 ??
-                result.trace?.output?.provider
+
+                output.provider
+
                 ??
+
                 "local",
 
 
 
 
-            telemetry:
 
 
-                data.telemetry
+
+            decision:
+
+
+                payload.decision
+
                 ??
+
+                output.decision
+
+                ??
+
+                "UNKNOWN",
+
+
+
+
+
+
+
+            trust_score:
+
+
+                payload.trust_score
+
+                ??
+
+                output.trust_score
+
+                ??
+
+                0,
+
+
+
+
+
+
+
+            risk_score:
+
+
+                payload.risk_score
+
+                ??
+
+                output.risk_score
+
+                ??
+
+                0,
+
+
+
+
+
+
+
+            result:output,
+
+
+
+
+
+
+
+            token_telemetry:
+
+
+                payload.token_telemetry
+
+                ??
+
+                output.token_telemetry
+
+                ??
+
                 {
 
 
-                    latency_ms:
+                    prompt_tokens:0,
 
-                        data.runtime_ms
-                        ??
-                        result.latency_ms
-                        ??
-                        0,
+                    completion_tokens:0,
 
-
-
-                    quality_score:
-
-                        data.quality_score
-                        ??
-                        result.quality_score_qt
-                        ??
-                        result.trace?.output?.quality_score
-                        ??
-                        0
+                    total_tokens:0
 
 
                 },
@@ -275,11 +451,54 @@ export default function ExecutionDetail(){
 
 
 
-            governance:
 
-                data.governance
+
+
+
+
+            telemetry:
+
+
+                payload.telemetry
+
                 ??
-                {}
+
+                {
+
+
+                    latency_ms:
+
+
+                        payload.runtime_ms
+
+                        ??
+
+                        output.runtime_ms
+
+                        ??
+
+                        0,
+
+
+
+
+                    quality_score:
+
+
+                        payload.quality_score
+
+                        ??
+
+                        output.quality_score
+
+                        ??
+
+                        0
+
+
+                }
+
+
 
         };
 
@@ -295,8 +514,9 @@ export default function ExecutionDetail(){
 
 
     // ======================================
-    // LOAD GOVERNANCE DATA
+    // LOAD GOVERNANCE
     // ======================================
+
 
     async function loadGovernance(
         executionId,
@@ -304,30 +524,38 @@ export default function ExecutionDetail(){
     ){
 
 
+        if(!executionId){
+
+            return;
+
+        }
+
+
+
         try{
 
 
-            const trust =
+            const res =
             await fetch(
-
-                `http://localhost:8000/trust/explanation/${executionId}`
-
+                `${API}/trust/explanation/${executionId}`
             );
 
 
-
-            if(trust.ok){
+            if(res.ok){
 
 
                 const data =
-                await trust.json();
-
+                await res.json();
 
 
                 replay
+
                 ?
+
                 setReplayTrustExplanation(data)
+
                 :
+
                 setTrustExplanation(data);
 
 
@@ -336,13 +564,9 @@ export default function ExecutionDetail(){
 
         }
 
-        catch{
+        catch(err){
 
-            replay
-            ?
-            setReplayTrustExplanation(null)
-            :
-            setTrustExplanation(null);
+            console.log(err);
 
         }
 
@@ -354,27 +578,27 @@ export default function ExecutionDetail(){
         try{
 
 
-            const reasoning =
+            const res =
             await fetch(
-
-                `http://localhost:8000/reasoning/${executionId}`
-
+                `${API}/reasoning/${executionId}`
             );
 
 
-
-            if(reasoning.ok){
+            if(res.ok){
 
 
                 const data =
-                await reasoning.json();
-
+                await res.json();
 
 
                 replay
+
                 ?
+
                 setReplayDecisionReasoning(data)
+
                 :
+
                 setDecisionReasoning(data);
 
 
@@ -383,13 +607,9 @@ export default function ExecutionDetail(){
 
         }
 
-        catch{
+        catch(err){
 
-            replay
-            ?
-            setReplayDecisionReasoning(null)
-            :
-            setDecisionReasoning(null);
+            console.log(err);
 
         }
 
@@ -405,8 +625,9 @@ export default function ExecutionDetail(){
 
 
     // ======================================
-    // LOAD ORIGINAL
+    // LOAD EXECUTION
     // ======================================
+
 
     useEffect(()=>{
 
@@ -421,16 +642,14 @@ export default function ExecutionDetail(){
 
 
 
-                const response =
+                const res =
                 await fetch(
-
-                    `http://localhost:8000/executions/${id}`
-
+                    `${API}/executions/${id}`
                 );
 
 
 
-                if(!response.ok){
+                if(!res.ok){
 
                     throw new Error(
                         "Execution not found"
@@ -441,7 +660,7 @@ export default function ExecutionDetail(){
 
 
                 const data =
-                await response.json();
+                await res.json();
 
 
 
@@ -450,23 +669,25 @@ export default function ExecutionDetail(){
 
 
 
-                setExecution(normalized);
+                setExecution(
+                    normalized
+                );
 
 
 
                 await loadGovernance(
+
                     normalized.execution_id,
+
                     false
+
                 );
+
 
 
             }
 
-
             catch(err){
-
-
-                console.error(err);
 
 
                 setError(
@@ -476,8 +697,8 @@ export default function ExecutionDetail(){
 
             }
 
-
             finally{
+
 
                 setLoading(false);
 
@@ -487,10 +708,7 @@ export default function ExecutionDetail(){
         }
 
 
-
-
         load();
-
 
 
     },[id]);
@@ -507,21 +725,32 @@ export default function ExecutionDetail(){
     // REPLAY
     // ======================================
 
-    async function handleReplayExecution(){
 
+    async function handleReplayExecution(){
 
 
         try{
 
 
-            const response =
+            setReplayError("");
+
+
+
+            const res =
             await fetch(
 
-                `http://localhost:8000/replay/${id}`,
+                `${API}/replay/${id}`,
 
                 {
 
-                    method:"POST"
+                    method:"POST",
+
+                    headers:{
+
+                        "Content-Type":
+                        "application/json"
+
+                    }
 
                 }
 
@@ -529,51 +758,69 @@ export default function ExecutionDetail(){
 
 
 
-            if(!response.ok){
+            if(!res.ok){
 
                 throw new Error(
-                    "Replay failed"
+                    await res.text()
                 );
 
             }
 
 
 
-
             const data =
-            await response.json();
+            await res.json();
 
 
 
-            setReplayData(data);
 
+
+            const replay =
+
+            normalizeExecution({
+
+                ...data.replay_result,
+
+                replay_execution_id:
+                data.replay_execution_id
+
+            });
+
+
+
+
+
+            setReplayExecution(
+                replay
+            );
 
 
             setReplayMode(true);
 
 
 
-            const replayId =
-                data.replay_result.execution_id;
-
 
 
             await loadGovernance(
-                replayId,
+
+                replay.execution_id,
+
                 true
+
             );
 
 
 
         }
 
-
         catch(err){
 
 
-            console.error(
-                "Replay Error",
-                err
+            console.error(err);
+
+
+            setReplayError(
+                err.message
             );
 
 
@@ -581,6 +828,26 @@ export default function ExecutionDetail(){
 
 
     }
+
+
+
+
+
+
+
+
+    const activeExecution =
+
+
+        replayMode && replayExecution
+
+        ?
+
+        replayExecution
+
+        :
+
+        execution;
 
 
 
@@ -633,46 +900,11 @@ export default function ExecutionDetail(){
 
 
 
+    if(!activeExecution){
 
+        return null;
 
-    // ======================================
-    // ACTIVE EXECUTION
-    // ======================================
-
-
-    const replayExecutionData =
-
-
-        replayData?.replay_result
-
-        ?
-
-        normalizeExecution(
-            replayData.replay_result
-        )
-
-        :
-
-        null;
-
-
-
-
-
-
-    const activeExecution =
-
-
-        replayMode && replayExecutionData
-
-        ?
-
-        replayExecutionData
-
-        :
-
-        execution;
-
+    }
 
 
 
@@ -681,48 +913,11 @@ export default function ExecutionDetail(){
 
     const output =
 
-        parseJSON(
-            activeExecution.result
-        );
+        activeExecution.result
 
+        ??
 
-
-
-
-
-
-    const activeTrustExplanation =
-
-
-        replayMode
-
-        ?
-
-        replayTrustExplanation
-
-        :
-
-        trustExplanation;
-
-
-
-
-
-    const activeDecisionReasoning =
-
-
-        replayMode
-
-        ?
-
-        replayDecisionReasoning
-
-        :
-
-        decisionReasoning;
-
-
-
+        {};
 
 
 
@@ -750,6 +945,7 @@ export default function ExecutionDetail(){
 
 
 
+
     const latency =
 
 
@@ -757,11 +953,11 @@ export default function ExecutionDetail(){
 
         ??
 
-        activeExecution.telemetry?.latency_ms
+        output.runtime_ms
 
         ??
 
-        activeExecution.runtime_ms
+        activeExecution.telemetry?.latency_ms
 
         ??
 
@@ -772,13 +968,8 @@ export default function ExecutionDetail(){
 
 
 
-
     const tokens =
 
-
-        output.token_telemetry
-
-        ??
 
         activeExecution.token_telemetry
 
@@ -789,14 +980,12 @@ export default function ExecutionDetail(){
 
             prompt_tokens:0,
 
-            completion_tokens:0
+            completion_tokens:0,
+
+            total_tokens:0
+
 
         };
-
-
-
-
-
 
 
 
@@ -828,35 +1017,23 @@ export default function ExecutionDetail(){
 
 
             {
-                replayMode &&
-
+                replayMode && replayExecution &&
 
                 <div className="replay-banner">
 
-
                     🔁 Replay Mode
 
-
                     <br/>
-
 
                     Original Execution #
 
-                    {
-                        replayData.original_execution_id
-                    }
-
-
+                    {execution.execution_id}
 
                     <br/>
 
-
                     Replay Execution #
 
-                    {
-                        replayExecutionData.execution_id
-                    }
-
+                    {replayExecution.execution_id}
 
 
                 </div>
@@ -866,6 +1043,18 @@ export default function ExecutionDetail(){
 
 
 
+
+
+            {
+                replayError &&
+
+                <div className="error-box">
+
+                    ❌ {replayError}
+
+                </div>
+
+            }
 
 
 
@@ -889,25 +1078,18 @@ export default function ExecutionDetail(){
 
 
 
-
-
             {
-                replayMode &&
-                replayExecutionData &&
-
+                replayMode && replayExecution &&
 
                 <ExecutionComparison
 
                     original={execution}
 
-                    replay={replayExecutionData}
+                    replay={replayExecution}
 
                 />
 
             }
-
-
-
 
 
 
@@ -925,8 +1107,6 @@ export default function ExecutionDetail(){
 
 
 
-
-
             <ExecutionOverview
 
                 execution={activeExecution}
@@ -937,16 +1117,17 @@ export default function ExecutionDetail(){
 
 
 
-
-
-
             <TrustExplanation
 
-                data={activeTrustExplanation}
+                data={
+                    replayMode
+                    ?
+                    replayTrustExplanation
+                    :
+                    trustExplanation
+                }
 
             />
-
-
 
 
 
@@ -954,10 +1135,15 @@ export default function ExecutionDetail(){
 
             <DecisionReasoning
 
-                data={activeDecisionReasoning}
+                data={
+                    replayMode
+                    ?
+                    replayDecisionReasoning
+                    :
+                    decisionReasoning
+                }
 
             />
-
 
 
 
@@ -984,7 +1170,9 @@ export default function ExecutionDetail(){
                 <TrustGauge
 
                     score={
-                        activeExecution.trust_score ?? 0
+                        activeExecution.trust_score
+                        ??
+                        0
                     }
 
                 />
@@ -1006,9 +1194,7 @@ export default function ExecutionDetail(){
                 />
 
 
-
             </div>
-
 
 
 
@@ -1029,14 +1215,11 @@ export default function ExecutionDetail(){
 
 
 
-
-
             <AgentOutputViewer
 
                 output={output}
 
             />
-
 
 
 
@@ -1058,14 +1241,14 @@ export default function ExecutionDetail(){
 
 
 
-
             <RuntimeTrace
 
-                trace={
-                    output.trace ?? {}
-                }
+                trace={output.trace}
+
+                execution={activeExecution}
 
             />
+
 
 
 

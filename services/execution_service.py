@@ -5,14 +5,19 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+
 from core.runtime import TrustOSRuntime
+
 
 from database.models import (
     Execution,
     Agent
 )
 
+
 from engines.cost_engine import CostEngine
+
+
 
 
 
@@ -20,29 +25,42 @@ from engines.cost_engine import CostEngine
 # JSON SAFE CONVERTER
 # ==========================================================
 
+
 def json_safe(obj: Any):
 
     if isinstance(obj, datetime):
+
         return obj.isoformat()
+
 
 
     if isinstance(obj, dict):
 
         return {
+
             key: json_safe(value)
+
             for key, value in obj.items()
+
         }
+
 
 
     if isinstance(obj, list):
 
         return [
+
             json_safe(item)
+
             for item in obj
+
         ]
 
 
+
     return obj
+
+
 
 
 
@@ -52,7 +70,9 @@ def json_safe(obj: Any):
 # EXECUTION SERVICE
 # ==========================================================
 
+
 class ExecutionService:
+
 
 
     def __init__(self):
@@ -63,9 +83,12 @@ class ExecutionService:
 
 
 
+
+
     # ======================================================
     # MAIN EXECUTION PIPELINE
     # ======================================================
+
 
     def execute(
 
@@ -92,9 +115,14 @@ class ExecutionService:
     ):
 
 
+        runtime_failed = False
+
+
+
         # ==================================================
         # 1. AGENT RESOLUTION
         # ==================================================
+
 
         if agent and not agent_name:
 
@@ -122,6 +150,7 @@ class ExecutionService:
             )
 
 
+
             if not registered_agent:
 
                 raise Exception(
@@ -129,11 +158,13 @@ class ExecutionService:
                 )
 
 
+
             if registered_agent.status != "ACTIVE":
 
                 raise Exception(
                     "Agent disabled"
                 )
+
 
 
             agent_name = registered_agent.name
@@ -165,9 +196,13 @@ class ExecutionService:
 
 
 
+
+
+
         # ==================================================
-        # 2. DEFAULT CONFIGURATION
+        # 2. DEFAULT CONFIG
         # ==================================================
+
 
         agent_name = (
 
@@ -186,7 +221,7 @@ class ExecutionService:
 
             or
 
-            "unknown"
+            "local"
 
         )
 
@@ -205,11 +240,16 @@ class ExecutionService:
 
 
 
+
+
+
         # ==================================================
         # 3. CREATE EXECUTION RECORD
         # ==================================================
 
+
         execution = Execution(
+
 
             task=task,
 
@@ -234,10 +274,12 @@ class ExecutionService:
             provider=provider,
 
 
+
             execution_type=execution_type,
 
 
             parent_execution_id=parent_execution_id,
+
 
 
             decision="RUNNING",
@@ -282,6 +324,7 @@ class ExecutionService:
 
 
 
+
         db.add(execution)
 
         db.commit()
@@ -291,32 +334,51 @@ class ExecutionService:
 
 
         execution_id = execution.id
-                # ==================================================
-        # 4. TRUSTOSAI RUNTIME EXECUTION
+
+
+
+
+
+
+
         # ==================================================
+        # 4. TRUSTOSAI RUNTIME
+        # ==================================================
+
 
         try:
 
 
             runtime_result = self.runtime.execute(
 
+
                 task,
+
 
                 db,
 
+
                 execution_id=execution_id,
+
 
                 agent=agent_name,
 
+
                 model=model,
 
+
                 provider=provider
+
 
             )
 
 
 
         except Exception as e:
+
+
+            runtime_failed = True
+
 
 
             runtime_result = {
@@ -328,23 +390,24 @@ class ExecutionService:
                 "trust_score": 0,
 
 
-                "risk_score": 100,
+                "risk_score":100,
 
 
-                "conflict_score": 0,
+                "conflict_score":0,
 
 
-                "reasoning": str(e),
+                "reasoning":str(e),
 
 
-                "result": {
+                "result":{
 
-                    "error": str(e)
+                    "error":str(e)
 
                 }
 
-
             }
+
+
 
 
 
@@ -356,9 +419,12 @@ class ExecutionService:
 
 
 
+
+
         # ==================================================
-        # 5. GOVERNANCE RESULT EXTRACTION
+        # 5. GOVERNANCE EXTRACTION
         # ==================================================
+
 
         decision = runtime_result.get(
 
@@ -426,9 +492,31 @@ class ExecutionService:
 
 
 
+        governance = runtime_result.get(
+
+            "governance",
+
+            {}
+
+        )
+
+
+
+        if not isinstance(governance, dict):
+
+            governance={}
+
+
+
+
+
+
+
+
         # ==================================================
         # 6. RESULT NORMALIZATION
         # ==================================================
+
 
         result_json = self.normalize_json(
 
@@ -447,9 +535,7 @@ class ExecutionService:
         final_model = (
 
             result_json.get(
-
                 "model"
-
             )
 
             or
@@ -463,9 +549,7 @@ class ExecutionService:
         final_provider = (
 
             result_json.get(
-
                 "provider"
-
             )
 
             or
@@ -480,9 +564,12 @@ class ExecutionService:
 
 
 
+
+
         # ==================================================
         # 7. TOKEN TELEMETRY
         # ==================================================
+
 
         token_data = result_json.get(
 
@@ -494,16 +581,9 @@ class ExecutionService:
 
 
 
-        if not isinstance(
+        if not isinstance(token_data,dict):
 
-            token_data,
-
-            dict
-
-        ):
-
-            token_data = {}
-
+            token_data={}
 
 
 
@@ -511,11 +591,8 @@ class ExecutionService:
         prompt_tokens = self.safe_int(
 
             token_data.get(
-
                 "prompt_tokens",
-
                 0
-
             )
 
         )
@@ -525,11 +602,8 @@ class ExecutionService:
         completion_tokens = self.safe_int(
 
             token_data.get(
-
                 "completion_tokens",
-
                 0
-
             )
 
         )
@@ -553,9 +627,13 @@ class ExecutionService:
 
 
 
+
+
+
         # ==================================================
-        # 8. RUNTIME METRICS
+        # 8. METRICS
         # ==================================================
+
 
         runtime_ms = self.safe_float(
 
@@ -577,7 +655,6 @@ class ExecutionService:
 
 
 
-
         latency_ms = self.safe_float(
 
             runtime_result.get(
@@ -594,10 +671,6 @@ class ExecutionService:
 
 
 
-
-        # ==================================================
-        # 9. QUALITY SCORE
-        # ==================================================
 
         quality_score = self.safe_float(
 
@@ -623,9 +696,11 @@ class ExecutionService:
 
 
 
+
         # ==================================================
-        # 10. COST ATTRIBUTION
+        # 9. COST
         # ==================================================
+
 
         cost = self.cost_engine.calculate(
 
@@ -645,18 +720,11 @@ class ExecutionService:
 
                 "cost_usd",
 
-                cost.get(
-
-                    "total_cost",
-
-                    0
-
-                )
+                0
 
             )
 
         )
-
 
 
         currency = cost.get(
@@ -675,73 +743,56 @@ class ExecutionService:
 
 
         # ==================================================
-        # 11. EXECUTION TRACE
+        # 10. TRACE
         # ==================================================
+
 
         execution_trace = {
 
 
-            "execution_id": execution_id,
+            "execution_id":execution_id,
 
 
-            "agent": agent_name,
+            "agent":agent_name,
 
 
-            "agent_id": (
-
-                registered_agent.id
-
-                if registered_agent
-
-                else None
-
-            ),
+            "model":final_model,
 
 
-            "model": final_model,
+            "provider":final_provider,
 
 
-            "provider": final_provider,
+            "decision":decision,
 
 
-            "execution_type": execution_type,
+            "trust_score":trust_score,
 
 
-            "decision": decision,
+            "risk_score":risk_score,
 
 
-            "trust_score": trust_score,
+            "conflict_score":conflict_score,
 
 
-            "risk_score": risk_score,
+            "tokens":{
 
 
-            "conflict_score": conflict_score,
+                "prompt":prompt_tokens,
 
+                "completion":completion_tokens,
 
-            "tokens": {
-
-
-                "prompt": prompt_tokens,
-
-
-                "completion": completion_tokens,
-
-
-                "total": total_tokens
+                "total":total_tokens
 
             },
 
 
-            "cost": cost,
+            "cost":cost,
 
 
-            "runtime": runtime_result,
+            "runtime":runtime_result,
 
 
-            "timestamp":
-
-                datetime.utcnow().isoformat()
+            "timestamp":datetime.utcnow().isoformat()
 
         }
 
@@ -750,9 +801,13 @@ class ExecutionService:
 
 
 
+
+
+
         # ==================================================
-        # 12. UPDATE EXECUTION RECORD
+        # 11. UPDATE DATABASE
         # ==================================================
+
 
         execution.model = final_model
 
@@ -764,7 +819,18 @@ class ExecutionService:
         execution.decision = decision
 
 
-        execution.status = "COMPLETED"
+
+        execution.status = (
+
+            "FAILED"
+
+            if runtime_failed
+
+            else
+
+            "COMPLETED"
+
+        )
 
 
 
@@ -778,7 +844,48 @@ class ExecutionService:
 
 
 
+
         execution.reasoning = reasoning
+
+
+
+        execution.governance_result = decision
+
+
+        execution.governance_status = decision
+
+
+
+        execution.governance_level = (
+
+            governance.get(
+
+                "governance_level",
+
+                "SAFE"
+
+            )
+
+        )
+
+
+
+        execution.policy_version = (
+
+            governance.get(
+
+                "policy_version",
+
+                "v1.0"
+
+            )
+
+        )
+
+
+
+
+        execution.governance_metadata = governance
 
 
 
@@ -800,7 +907,11 @@ class ExecutionService:
 
 
 
-        execution.execution_trace = execution_trace
+        execution.execution_trace = json_safe(
+
+            execution_trace
+
+        )
 
 
 
@@ -815,6 +926,7 @@ class ExecutionService:
 
 
         execution.quality_score = quality_score
+
 
 
 
@@ -835,35 +947,26 @@ class ExecutionService:
 
 
 
-        execution.updated_at = datetime.utcnow()
-                # ==================================================
-        # 13. UPDATE AGENT ANALYTICS
+        execution.updated_at=datetime.utcnow()
+
+
+
+
+
+
+
         # ==================================================
+        # 12. AGENT ANALYTICS
+        # ==================================================
+
 
         if registered_agent:
 
 
-            old_total = (
-
-                registered_agent.total_executions
-
-                or
-
-                0
-
-            )
+            old_total = registered_agent.total_executions or 0
 
 
-
-            old_average = (
-
-                registered_agent.average_trust
-
-                or
-
-                0
-
-            )
+            old_average = registered_agent.average_trust or 0
 
 
 
@@ -871,29 +974,25 @@ class ExecutionService:
 
 
 
-            new_average = (
-
-                (
-
-                    old_average * old_total
-
-                )
-
-                +
-
-                trust_score
-
-            ) / new_total
-
-
-
-
             registered_agent.total_executions = new_total
+
 
 
             registered_agent.average_trust = round(
 
-                new_average,
+                (
+
+                    (old_average * old_total)
+
+                    +
+
+                    trust_score
+
+                )
+
+                /
+
+                new_total,
 
                 2
 
@@ -905,18 +1004,16 @@ class ExecutionService:
 
 
 
+
         # ==================================================
-        # 14. FINAL DATABASE COMMIT
+        # 13. COMMIT
         # ==================================================
+
 
         db.commit()
 
 
-        db.refresh(
-
-            execution
-
-        )
+        db.refresh(execution)
 
 
 
@@ -928,65 +1025,35 @@ class ExecutionService:
 
 
 
-
-
-
     # ======================================================
     # JSON NORMALIZER
     # ======================================================
 
-    def normalize_json(
 
-        self,
-
-        data
-
-    ):
+    def normalize_json(self,data):
 
 
-        if isinstance(
-
-            data,
-
-            str
-
-        ):
-
+        if isinstance(data,str):
 
             try:
 
-                return json.loads(
-
-                    data
-
-                )
+                return json.loads(data)
 
 
-            except Exception:
-
+            except:
 
                 return {
 
-
-                    "response": data
+                    "response":data
 
                 }
 
 
 
 
-
-        if isinstance(
-
-            data,
-
-            dict
-
-        ):
+        if isinstance(data,dict):
 
             return data
-
-
 
 
 
@@ -997,101 +1064,18 @@ class ExecutionService:
 
 
 
-
-
-
     # ======================================================
-    # QUALITY SCORE EXTRACTION
+    # SAFE FLOAT
     # ======================================================
 
-    def extract_quality(
 
-        self,
-
-        result
-
-    ):
-
-
-        if not isinstance(
-
-            result,
-
-            dict
-
-        ):
-
-            return 0.0
-
-
-
-
-
-        return self.safe_float(
-
-
-            result.get(
-
-
-                "quality_score",
-
-
-
-                result.get(
-
-
-                    "quality_score_qt",
-
-
-                    0
-
-                )
-
-            )
-
-
-        )
-
-
-
-
-
-
-
-
-
-    # ======================================================
-    # SAFE FLOAT CONVERTER
-    # ======================================================
-
-    def safe_float(
-
-        self,
-
-        value
-
-    ):
-
+    def safe_float(self,value):
 
         try:
 
+            return float(value or 0)
 
-            if value is None:
-
-                return 0.0
-
-
-
-            return float(
-
-                value
-
-            )
-
-
-
-        except Exception:
-
+        except:
 
             return 0.0
 
@@ -1101,40 +1085,17 @@ class ExecutionService:
 
 
 
-
-
-
     # ======================================================
-    # SAFE INTEGER CONVERTER
+    # SAFE INT
     # ======================================================
 
-    def safe_int(
 
-        self,
-
-        value
-
-    ):
-
+    def safe_int(self,value):
 
         try:
 
+            return int(value or 0)
 
-            if value is None:
-
-                return 0
-
-
-
-            return int(
-
-                value
-
-            )
-
-
-
-        except Exception:
-
+        except:
 
             return 0

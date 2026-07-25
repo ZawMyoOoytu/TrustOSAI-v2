@@ -1,9 +1,11 @@
 export default function ExecutionHeader({
+
     execution
+
 }) {
 
 
-    if (!execution) {
+    if(!execution){
 
         return null;
 
@@ -11,28 +13,247 @@ export default function ExecutionHeader({
 
 
 
+
+
+
+
+    // =====================================
+    // SAFE PARSER
+    // =====================================
+
+
+    function parse(value){
+
+
+        if(!value){
+
+            return {};
+
+        }
+
+
+
+        if(typeof value === "object"){
+
+            return value;
+
+        }
+
+
+
+        try{
+
+            return JSON.parse(value);
+
+        }
+
+        catch{
+
+            return {};
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+    // =====================================
+    // NORMALIZE
+    // =====================================
+
+
+    const result =
+
+
+        parse(
+
+            execution.result
+
+        );
+
+
+
+
+
+
+    const replayResult =
+
+
+        execution.replay_result
+
+        ??
+
+        {};
+
+
+
+
+
+
+
+    const output =
+
+
+        result.result
+
+        ??
+
+        result
+
+        ??
+
+        replayResult;
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // DATA MAPPING
+    // =====================================
+
+
     const executionId =
+
+
         execution.execution_id
-        ||
+
+        ??
+
         execution.id
-        ||
+
+        ??
+
+        replayResult.execution_id
+
+        ??
+
         "N/A";
 
 
 
+
+
+
+
+
+    const executionType =
+
+
+        execution.execution_type
+
+        ??
+
+        replayResult.execution_type
+
+        ??
+
+        "NORMAL";
+
+
+
+
+
+
+
+
     const decision =
+
+
         execution.decision
-        ||
-        execution.replay_result?.decision
-        ||
+
+        ??
+
+        replayResult.decision
+
+        ??
+
+        output.decision
+
+        ??
+
         "UNKNOWN";
 
 
 
+
+
+
+
+
     const created =
+
+
         execution.created_at
-        ||
+
+        ??
+
+        execution.timestamp
+
+        ??
+
+        output.timestamp
+
+        ??
+
         "Replay Execution";
+
+
+
+
+
+
+
+
+    const model =
+
+
+        execution.model
+
+        ??
+
+        replayResult.model
+
+        ??
+
+        output.model
+
+        ??
+
+        "unknown";
+
+
+
+
+
+
+
+
+    const agent =
+
+
+        execution.agent
+
+        ??
+
+        replayResult.agent
+
+        ??
+
+        "unknown";
+
+
+
+
 
 
 
@@ -40,7 +261,13 @@ export default function ExecutionHeader({
 
     return (
 
+
+
         <div className="execution-header">
+
+
+
+
 
 
 
@@ -49,6 +276,10 @@ export default function ExecutionHeader({
                 ⚡ Execution Trace #{executionId}
 
             </h1>
+
+
+
+
 
 
 
@@ -64,38 +295,161 @@ export default function ExecutionHeader({
 
 
 
-            <p>
 
-                Created:
 
-                {" "}
 
-                {created}
 
-            </p>
+            <div className="header-meta">
 
 
 
 
 
-            <p>
+                <p>
 
-                Decision:
+                    <span>
 
-                {" "}
+                        Type:
 
-                <strong>
-
-                    {decision}
-
-                </strong>
+                    </span>
 
 
-            </p>
+                    <strong>
+
+                        {executionType}
+
+                    </strong>
+
+
+                </p>
+
+
+
+
+
+
+
+                <p>
+
+                    <span>
+
+                        Created:
+
+                    </span>
+
+
+                    <strong>
+
+                        {
+
+                            typeof created === "string"
+
+                            ?
+
+                            created
+
+                            :
+
+                            new Date(created)
+
+                            .toLocaleString()
+
+                        }
+
+                    </strong>
+
+
+                </p>
+
+
+
+
+
+
+
+                <p>
+
+                    <span>
+
+                        Decision:
+
+                    </span>
+
+
+                    <strong>
+
+                        {decision}
+
+                    </strong>
+
+
+                </p>
+
+
+
+
+
+
+
+                <p>
+
+                    <span>
+
+                        Model:
+
+                    </span>
+
+
+                    <strong>
+
+                        {model}
+
+                    </strong>
+
+
+                </p>
+
+
+
+
+
+
+
+                <p>
+
+                    <span>
+
+                        Agent:
+
+                    </span>
+
+
+                    <strong>
+
+                        {agent}
+
+                    </strong>
+
+
+                </p>
+
+
+
+
+
+
+
+            </div>
+
+
+
+
 
 
 
         </div>
+
+
 
     );
 

@@ -1,80 +1,443 @@
 export default function GovernanceTimeline({
+
     execution
-}){
+
+}) {
 
 
-const steps=[
+    if(!execution){
 
-    "Request Received",
+        return null;
 
-    "Policy Evaluation Completed",
-
-    "Trust Score Generated",
-
-    `Decision: ${execution.decision}`,
-
-    "Agent Execution Completed",
-
-    "Audit Stored"
-
-];
+    }
 
 
 
-return (
-
-<div className="timeline">
-
-
-<h2>
-🧠 Governance Timeline
-</h2>
 
 
 
-{
-steps.map(
-(step,index)=>(
+    // =====================================
+    // SAFE PARSER
+    // =====================================
 
 
-<div
-
-className="timeline-item"
-
-key={index}
-
->
+    function parse(value){
 
 
-<span>
+        if(!value){
 
-✓
+            return {};
 
-</span>
-
-
-{" "}
-
-
-{step}
+        }
 
 
 
-</div>
+        if(typeof value === "object"){
 
+            return value;
 
-)
-
-)
-
-}
+        }
 
 
 
-</div>
+        try{
+
+            return JSON.parse(value);
+
+        }
+
+        catch{
+
+            return {};
+
+        }
 
 
-);
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // NORMALIZE DATA
+    // =====================================
+
+
+    const result =
+
+
+        parse(
+
+            execution.result
+
+        );
+
+
+
+
+
+
+    const replayResult =
+
+
+        execution.replay_result
+
+        ??
+
+        {};
+
+
+
+
+
+
+    const output =
+
+
+        result.result
+
+        ??
+
+        result
+
+        ??
+
+        replayResult;
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // VALUES
+    // =====================================
+
+
+    const decision =
+
+
+        execution.decision
+
+        ??
+
+        output.decision
+
+        ??
+
+        replayResult.decision
+
+        ??
+
+        "UNKNOWN";
+
+
+
+
+
+
+
+
+    const status =
+
+
+        execution.status
+
+        ??
+
+        output.status
+
+        ??
+
+        "COMPLETED";
+
+
+
+
+
+
+
+
+    const executionType =
+
+
+        execution.execution_type
+
+        ??
+
+        replayResult.execution_type
+
+        ??
+
+        "NORMAL";
+
+
+
+
+
+
+
+
+
+    const completed =
+
+
+        status === "COMPLETED"
+
+        ||
+
+        status === "SUCCESS";
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // TIMELINE STEPS
+    // =====================================
+
+
+    const steps = [
+
+
+
+        {
+
+            title:
+            "Request Received",
+
+            done:true
+
+        },
+
+
+
+
+        {
+
+            title:
+            "Policy Evaluation Completed",
+
+            done:true
+
+        },
+
+
+
+
+        {
+
+            title:
+            "Trust Score Generated",
+
+            done:true
+
+        },
+
+
+
+
+        {
+
+            title:
+            `Decision: ${decision}`,
+
+            done:
+
+                decision !== "UNKNOWN"
+
+        },
+
+
+
+
+
+        {
+
+            title:
+            "Agent Execution Completed",
+
+            done:
+
+                completed
+
+        },
+
+
+
+
+
+        {
+
+            title:
+            "Audit Stored",
+
+            done:true
+
+        }
+
+
+    ];
+
+
+
+
+
+
+
+
+
+    return (
+
+
+
+        <div className="timeline">
+
+
+
+
+
+
+
+            <h2>
+
+                🧠 Governance Timeline
+
+            </h2>
+
+
+
+
+
+
+
+
+            <div className="timeline-type">
+
+
+                Mode:
+
+                {" "}
+
+
+                <strong>
+
+                    {executionType}
+
+                </strong>
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+            {
+
+                steps.map(
+
+                    (step,index)=>(
+
+
+
+                        <div
+
+                            className={
+
+                                `timeline-item ${
+                                    step.done
+                                    ?
+                                    "completed"
+                                    :
+                                    "pending"
+                                }`
+
+                            }
+
+
+                            key={index}
+
+                        >
+
+
+
+
+                            <span>
+
+
+                                {
+
+                                    step.done
+
+                                    ?
+
+                                    "✓"
+
+                                    :
+
+                                    "○"
+
+                                }
+
+
+                            </span>
+
+
+
+
+
+                            <p>
+
+
+                                {step.title}
+
+
+                            </p>
+
+
+
+
+
+
+                        </div>
+
+
+
+                    )
+
+                )
+
+            }
+
+
+
+
+
+
+
+
+        </div>
+
+
+
+    );
 
 
 }

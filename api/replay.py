@@ -19,6 +19,7 @@ from core.orchestrator import RuntimeOrchestrator
 
 
 
+
 # =====================================================
 # ROUTER
 # =====================================================
@@ -35,6 +36,7 @@ router = APIRouter(
 
 
 
+
 # =====================================================
 # RUNTIME INSTANCE
 # =====================================================
@@ -46,7 +48,7 @@ replay_runtime = RuntimeOrchestrator()
 
 
 # =====================================================
-# JSON SAFE
+# JSON SAFE CONVERTER
 # =====================================================
 
 def json_safe(obj):
@@ -121,7 +123,7 @@ def replay_execution(
 
 
         # =================================================
-        # 1. LOAD ORIGINAL EXECUTION
+        # LOAD ORIGINAL EXECUTION
         # =================================================
 
 
@@ -156,87 +158,90 @@ def replay_execution(
 
 
 
+
         # =================================================
-        # 2. CREATE REPLAY EXECUTION RECORD
+        # CREATE REPLAY RECORD
         # =================================================
 
 
         replay_record = Execution(
 
 
-
-            task = original.task,
-
-
-
-            agent = original.agent,
+            task =
+                original.task,
 
 
-
-            agent_id = original.agent_id,
-
-
-
-            model = original.model,
+            agent =
+                original.agent,
 
 
+            agent_id =
+                original.agent_id,
 
-            provider = original.provider,
+
+            model =
+                original.model,
 
 
-
-            execution_type="REPLAY",
+            provider =
+                original.provider,
 
 
 
-            parent_execution_id=original.id,
+            execution_type =
+                "REPLAY",
 
 
 
-            decision="RUNNING",
+            parent_execution_id =
+                original.id,
 
 
 
-            status="RUNNING",
+            decision =
+                "RUNNING",
 
 
 
-            trust_score=0,
+            status =
+                "RUNNING",
 
 
 
-            risk_score=0,
+            trust_score = 0,
+
+
+            risk_score = 0,
+
+
+            conflict_score = 0,
 
 
 
-            conflict_score=0,
+            runtime_ms = 0,
+
+
+            latency_ms = 0,
+
+
+            quality_score = 0,
 
 
 
-            runtime_ms=0,
+            prompt_tokens = 0,
 
 
-            latency_ms=0,
+            completion_tokens = 0,
 
 
-            quality_score=0,
-
-
-
-            prompt_tokens=0,
-
-
-            completion_tokens=0,
-
-
-            total_tokens=0,
+            total_tokens = 0,
 
 
 
-            cost_usd=0,
+            cost_usd = 0,
 
 
-            currency="USD"
+            currency = "USD"
 
 
         )
@@ -245,13 +250,17 @@ def replay_execution(
 
 
 
-        db.add(replay_record)
+        db.add(
+            replay_record
+        )
 
 
         db.commit()
 
 
-        db.refresh(replay_record)
+        db.refresh(
+            replay_record
+        )
 
 
 
@@ -264,40 +273,46 @@ def replay_execution(
 
 
         # =================================================
-        # 3. EXECUTE REPLAY PIPELINE
+        # RUN REPLAY PIPELINE
         # =================================================
 
 
         replay_result = replay_runtime.execute(
 
 
-            task=original.task,
+            task =
+                original.task,
 
 
-            db=db,
+            db =
+                db,
 
 
-            execution_id=replay_id,
+            execution_id =
+                replay_id,
 
 
-            agent=original.agent,
+            agent =
+                original.agent,
 
 
-            model=original.model,
+            model =
+                original.model,
 
 
-            provider=original.provider,
+            provider =
+                original.provider,
 
 
-            user_role="replay-engine",
+            user_role =
+                "replay-engine",
 
 
-            execution_mode="REPLAY"
+            execution_mode =
+                "REPLAY"
 
 
         )
-
-
 
 
 
@@ -315,8 +330,10 @@ def replay_execution(
 
 
 
+
+
         # =================================================
-        # 4. EXTRACT GOVERNANCE RESULT
+        # UPDATE GOVERNANCE DATA
         # =================================================
 
 
@@ -384,8 +401,11 @@ def replay_execution(
 
 
 
+
+
+
         # =================================================
-        # 5. TELEMETRY UPDATE
+        # TELEMETRY
         # =================================================
 
 
@@ -403,8 +423,6 @@ def replay_execution(
 
 
 
-
-
         replay_record.runtime_ms = (
 
             replay_result.get(
@@ -419,8 +437,6 @@ def replay_execution(
 
 
 
-
-
         replay_record.latency_ms = (
 
             replay_result.get(
@@ -432,8 +448,6 @@ def replay_execution(
             )
 
         )
-
-
 
 
 
@@ -458,11 +472,11 @@ def replay_execution(
 
 
         # =================================================
-        # 6. TOKEN DATA
+        # TOKEN TELEMETRY
         # =================================================
 
 
-        token_data = replay_result.get(
+        tokens = replay_result.get(
 
             "token_telemetry",
 
@@ -472,55 +486,39 @@ def replay_execution(
 
 
 
-        if isinstance(
-
-            token_data,
-
-            dict
-
-        ):
-
+        if isinstance(tokens,dict):
 
 
             replay_record.prompt_tokens = (
 
-                token_data.get(
-
+                tokens.get(
                     "prompt_tokens",
-
                     0
-
                 )
 
             )
-
 
 
             replay_record.completion_tokens = (
 
-                token_data.get(
-
+                tokens.get(
                     "completion_tokens",
-
                     0
-
                 )
 
             )
-
 
 
             replay_record.total_tokens = (
 
-                token_data.get(
-
+                tokens.get(
                     "total_tokens",
-
                     0
-
                 )
 
             )
+
+
 
 
 
@@ -529,7 +527,7 @@ def replay_execution(
 
 
         # =================================================
-        # 7. SAVE TRACE
+        # SAVE RESULT
         # =================================================
 
 
@@ -541,24 +539,28 @@ def replay_execution(
 
 
 
+
         replay_record.result = json.dumps(
 
             {
 
-                "execution_mode":"REPLAY",
+                "execution_mode":
+                    "REPLAY",
+
 
                 "parent_execution_id":
-
                     original.id,
 
 
                 "result":
-
                     replay_result
 
             }
 
         )
+
+
+
 
 
 
@@ -587,8 +589,8 @@ def replay_execution(
 
                 datetime.utcnow().isoformat()
 
-
         }
+
 
 
 
@@ -597,13 +599,14 @@ def replay_execution(
 
 
 
-
-
-
         db.commit()
 
 
-        db.refresh(replay_record)
+        db.refresh(
+            replay_record
+        )
+
+
 
 
 
@@ -612,15 +615,16 @@ def replay_execution(
 
 
         # =================================================
-        # RESPONSE
+        # FRONTEND COMPATIBLE RESPONSE
         # =================================================
 
 
         return {
 
 
+            "replay":
 
-            "replay": True,
+                True,
 
 
 
@@ -637,32 +641,45 @@ def replay_execution(
 
 
 
-            "execution_type":
-
-                "REPLAY",
-
-
-
-
-            "parent_execution_id":
-
-                original.id,
-
-
-
-
             "replay_result":
 
             {
-
-
-                **replay_result,
 
 
 
                 "execution_id":
 
                     replay_record.id,
+
+
+
+                "task":
+
+                    original.task,
+
+
+
+                "agent":
+
+                    original.agent,
+
+
+
+                "agent_id":
+
+                    original.agent_id,
+
+
+
+                "model":
+
+                    original.model,
+
+
+
+                "provider":
+
+                    original.provider,
 
 
 
@@ -674,7 +691,61 @@ def replay_execution(
 
                 "parent_execution_id":
 
-                    original.id
+                    original.id,
+
+
+
+                "decision":
+
+                    replay_record.decision,
+
+
+
+                "trust_score":
+
+                    replay_record.trust_score,
+
+
+
+                "risk_score":
+
+                    replay_record.risk_score,
+
+
+
+                "conflict_score":
+
+                    replay_record.conflict_score,
+
+
+
+                "runtime_ms":
+
+                    replay_record.runtime_ms,
+
+
+
+                "latency_ms":
+
+                    replay_record.latency_ms,
+
+
+
+                "quality_score":
+
+                    replay_record.quality_score,
+
+
+
+                "token_telemetry":
+
+                    tokens,
+
+
+
+                "result":
+
+                    replay_result
 
 
             }
@@ -702,7 +773,6 @@ def replay_execution(
         db.rollback()
 
 
-
         raise HTTPException(
 
 
@@ -715,7 +785,6 @@ def replay_execution(
                 "message":
 
                     "Replay execution failed",
-
 
 
                 "error":
@@ -744,13 +813,18 @@ def replay_execution(
 )
 def compare_replay(
 
+
     original_id:int,
+
 
     replay_id:int,
 
+
     db:Session = Depends(get_db)
 
+
 ):
+
 
 
     original = (
@@ -782,6 +856,7 @@ def compare_replay(
 
 
 
+
     if not original or not replay:
 
 
@@ -792,6 +867,8 @@ def compare_replay(
             detail="Execution not found"
 
         )
+
+
 
 
 
@@ -816,20 +893,21 @@ def compare_replay(
 
             "trust_score":
 
-                original.trust_score,
+                original.trust_score or 0,
 
 
             "risk_score":
 
-                original.risk_score,
+                original.risk_score or 0,
 
 
             "model":
 
                 original.model
 
-
         },
+
+
 
 
 
@@ -848,20 +926,21 @@ def compare_replay(
 
             "trust_score":
 
-                replay.trust_score,
+                replay.trust_score or 0,
 
 
             "risk_score":
 
-                replay.risk_score,
+                replay.risk_score or 0,
 
 
             "model":
 
                 replay.model
 
-
         },
+
+
 
 
 
@@ -870,37 +949,47 @@ def compare_replay(
 
             "trust_delta":
 
-                replay.trust_score
+                (replay.trust_score or 0)
+
                 -
-                original.trust_score,
+
+                (original.trust_score or 0),
+
 
 
 
             "risk_delta":
 
-                replay.risk_score
+                (replay.risk_score or 0)
+
                 -
-                original.risk_score,
+
+                (original.risk_score or 0),
+
 
 
 
             "decision_changed":
 
                 replay.decision
+
                 !=
+
                 original.decision,
+
 
 
 
             "model_changed":
 
                 replay.model
+
                 !=
+
                 original.model
 
 
         }
-
 
 
     }

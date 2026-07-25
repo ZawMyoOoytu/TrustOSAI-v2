@@ -57,10 +57,9 @@ class Agent(Base):
     )
 
 
-
-    # =============================
+    # =================================================
     # MODEL CONFIG
-    # =============================
+    # =================================================
 
 
     model = Column(
@@ -77,10 +76,9 @@ class Agent(Base):
     )
 
 
-
-    # =============================
+    # =================================================
     # GOVERNANCE
-    # =============================
+    # =================================================
 
 
     trust_threshold = Column(
@@ -102,10 +100,9 @@ class Agent(Base):
     )
 
 
-
-    # =============================
+    # =================================================
     # ANALYTICS
-    # =============================
+    # =================================================
 
 
     total_executions = Column(
@@ -122,12 +119,15 @@ class Agent(Base):
     )
 
 
-
     metadata_json = Column(
         JSON,
         default=dict
     )
 
+
+    # =================================================
+    # TIMESTAMP
+    # =================================================
 
 
     created_at = Column(
@@ -144,9 +144,9 @@ class Agent(Base):
 
 
 
-    # =============================
+    # =================================================
     # RELATIONSHIP
-    # =============================
+    # =================================================
 
 
     executions = relationship(
@@ -154,7 +154,6 @@ class Agent(Base):
         back_populates="agent_ref",
         foreign_keys="Execution.agent_id"
     )
-
 
 
     memory_config = relationship(
@@ -179,7 +178,12 @@ class Agent(Base):
             f"<Agent id={self.id} "
             f"name={self.name}>"
         )
-        # =====================================================
+
+
+
+
+
+# =====================================================
 # EXECUTION RUNTIME
 # =====================================================
 
@@ -205,7 +209,7 @@ class Execution(Base):
 
 
 
-    # Display Name
+    # Display Agent Name
 
     agent = Column(
         String(100),
@@ -214,7 +218,7 @@ class Execution(Base):
 
 
 
-    # REAL FK
+    # REAL FOREIGN KEY
 
     agent_id = Column(
         BigInteger,
@@ -228,6 +232,11 @@ class Execution(Base):
 
 
 
+    # =================================================
+    # ROUTING
+    # =================================================
+
+
     route = Column(
         String(100),
         nullable=True
@@ -235,9 +244,22 @@ class Execution(Base):
 
 
 
-    # =============================
-    # TRUST
-    # =============================
+    provider = Column(
+        String(50),
+        default="local"
+    )
+
+
+    model = Column(
+        String(100),
+        nullable=True
+    )
+
+
+
+    # =================================================
+    # TRUST ENGINE
+    # =================================================
 
 
     trust_score = Column(
@@ -258,11 +280,17 @@ class Execution(Base):
     )
 
 
+
     decision = Column(
         String(50),
         default="REVIEW"
     )
 
+
+
+    # =================================================
+    # GOVERNANCE ENGINE
+    # =================================================
 
 
     governance_result = Column(
@@ -277,28 +305,46 @@ class Execution(Base):
     )
 
 
-
-    # =============================
-    # MODEL
-    # =============================
-
-
-    provider = Column(
+    governance_level = Column(
         String(50),
-        default="local"
+        default="SAFE"
     )
 
 
-    model = Column(
-        String(100),
+    governance_status = Column(
+        String(50),
+        default="APPROVED"
+    )
+
+
+    policy_result = Column(
+        String(50),
+        nullable=True
+    )
+
+
+    policy_version = Column(
+        String(50),
+        default="v1.2.0"
+    )
+
+
+    governance_metadata = Column(
+        JSON,
+        default=dict
+    )
+
+
+    reasoning = Column(
+        Text,
         nullable=True
     )
 
 
 
-    # =============================
-    # OUTPUT
-    # =============================
+    # =================================================
+    # EXECUTION OUTPUT
+    # =================================================
 
 
     result = Column(
@@ -314,9 +360,9 @@ class Execution(Base):
 
 
 
-    # =============================
+    # =================================================
     # TELEMETRY
-    # =============================
+    # =================================================
 
 
     runtime_ms = Column(
@@ -354,9 +400,31 @@ class Execution(Base):
         Integer,
         default=0
     )
-        # =============================
+
+
+    tokens_used = Column(
+        Integer,
+        default=0
+    )
+
+
+
+    telemetry = Column(
+        JSON,
+        default=dict
+    )
+
+
+    execution_trace = Column(
+        JSON,
+        default=dict
+    )
+
+
+
+    # =================================================
     # COST ATTRIBUTION
-    # =============================
+    # =================================================
 
 
     cost_usd = Column(
@@ -372,33 +440,9 @@ class Execution(Base):
 
 
 
-    # =============================
-    # TRACE STORAGE
-    # =============================
-
-
-    execution_trace = Column(
-        JSON,
-        default=dict
-    )
-
-
-    telemetry = Column(
-        JSON,
-        default=dict
-    )
-
-
-    governance_metadata = Column(
-        JSON,
-        default=dict
-    )
-
-
-
-    # =============================
+    # =================================================
     # REPLAY ENGINE
-    # =============================
+    # =================================================
 
 
     execution_type = Column(
@@ -421,9 +465,9 @@ class Execution(Base):
 
 
 
-    # =============================
+    # =================================================
     # STATUS
-    # =============================
+    # =================================================
 
 
     status = Column(
@@ -433,16 +477,9 @@ class Execution(Base):
 
 
 
-    reasoning = Column(
-        Text,
-        nullable=True
-    )
-
-
-
-    # =============================
+    # =================================================
     # TIMESTAMP
-    # =============================
+    # =================================================
 
 
     created_at = Column(
@@ -460,24 +497,29 @@ class Execution(Base):
 
 
 
-    # =============================
-    # RELATIONSHIPS
-    # =============================
+    # =================================================
+    # RELATIONSHIP
+    # =================================================
 
 
     agent_ref = relationship(
         "Agent",
-        back_populates="executions"
+        back_populates="executions",
+        foreign_keys=[agent_id]
     )
-
 
 
     parent_execution = relationship(
         "Execution",
         remote_side=[id],
-        backref="child_executions"
+        back_populates="child_executions"
     )
 
+
+    child_executions = relationship(
+        "Execution",
+        back_populates="parent_execution"
+    )
 
 
     memories = relationship(
@@ -520,7 +562,6 @@ class AgentMemoryConfig(Base):
     )
 
 
-
     agent_id = Column(
         BigInteger,
         ForeignKey(
@@ -530,7 +571,6 @@ class AgentMemoryConfig(Base):
         nullable=False,
         unique=True
     )
-
 
 
     enabled = Column(
@@ -545,7 +585,6 @@ class AgentMemoryConfig(Base):
     )
 
 
-
     max_context_tokens = Column(
         Integer,
         default=8000
@@ -556,7 +595,6 @@ class AgentMemoryConfig(Base):
         Integer,
         default=365
     )
-
 
 
     created_at = Column(
@@ -570,7 +608,6 @@ class AgentMemoryConfig(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
-
 
 
     agent = relationship(
@@ -602,7 +639,6 @@ class AgentMemory(Base):
     )
 
 
-
     agent_id = Column(
         BigInteger,
         ForeignKey(
@@ -611,7 +647,6 @@ class AgentMemory(Base):
         ),
         nullable=False
     )
-
 
 
     execution_id = Column(
@@ -624,12 +659,10 @@ class AgentMemory(Base):
     )
 
 
-
     memory_type = Column(
         String(50),
         default="EXECUTION"
     )
-
 
 
     content = Column(
@@ -638,19 +671,16 @@ class AgentMemory(Base):
     )
 
 
-
     importance_score = Column(
         Float,
         default=0.5
     )
 
 
-
     access_count = Column(
         Integer,
         default=0
     )
-
 
 
     created_at = Column(
@@ -671,7 +701,6 @@ class AgentMemory(Base):
         "Agent",
         back_populates="memories"
     )
-
 
 
     execution = relationship(

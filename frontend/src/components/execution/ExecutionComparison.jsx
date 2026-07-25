@@ -1,172 +1,700 @@
 export default function ExecutionComparison({
+
     original,
+
     replay
+
 }) {
 
 
+
     if(!original || !replay){
+
         return null;
+
     }
 
+
+
+
+
+    // =====================================
+    // SAFE PARSER
+    // =====================================
 
 
     function parse(value){
 
+
         if(!value){
+
             return {};
+
         }
 
 
-        if(typeof value==="object"){
+
+        if(typeof value === "object"){
+
             return value;
+
         }
+
 
 
         try{
+
+
             return JSON.parse(value);
+
+
         }
+
         catch{
+
+
             return {};
+
         }
+
 
     }
 
 
 
 
-    const originalOutput =
-        parse(original.result);
-
-
-
-    const replayOutput =
-        parse(replay.result);
 
 
 
 
+    // =====================================
+    // NORMALIZE DATA
+    // =====================================
 
-    const rows=[
+
+    const originalResult =
+
+        parse(
+
+            original.result
+
+        );
+
+
+
+
+
+    const replayResult =
+
+
+        parse(
+
+            replay.result
+
+        );
+
+
+
+
+
+
+
+
+    const originalTrace =
+
+
+        originalResult.trace
+
+        ??
+
+        {};
+
+
+
+
+
+    const replayTrace =
+
+
+        replayResult.trace
+
+        ??
+
+        {};
+
+
+
+
+
+
+
+
+    // =====================================
+    // METRIC HELPERS
+    // =====================================
+
+
+    function score(value){
+
+
+        return Number(
+
+            value ?? 0
+
+        )
+
+        .toFixed(2);
+
+
+    }
+
+
+
+
+
+
+    function runtime(data,result){
+
+
+        return (
+
+            data.runtime_ms
+
+            ??
+
+            data.latency_ms
+
+            ??
+
+            result.runtime_ms
+
+            ??
+
+            result.latency_ms
+
+            ??
+
+            data.telemetry?.latency_ms
+
+            ??
+
+            0
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+    function quality(data,result){
+
+
+        return (
+
+            data.quality_score
+
+            ??
+
+            result.quality_score
+
+            ??
+
+            result.quality_score_qt
+
+            ??
+
+            data.telemetry?.quality_score
+
+            ??
+
+            0
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
+    function tokens(data,result){
+
+
+        const token =
+
+
+            data.token_telemetry
+
+            ??
+
+            result.token_telemetry
+
+            ??
+
+            {};
+
+
+
+        return (
+
+            token.total_tokens
+
+            ??
+
+            (
+
+                (token.prompt_tokens ?? 0)
+
+                +
+
+                (token.completion_tokens ?? 0)
+
+            )
+
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // COMPARISON ROWS
+    // =====================================
+
+
+    const rows = [
+
+
 
         {
+
             metric:"Execution ID",
+
             original:
-                original.execution_id ?? "-",
+
+                original.execution_id
+
+                ??
+
+                original.id
+
+                ??
+
+                "-",
+
+
             replay:
-                replay.execution_id ?? "-"
+
+                replay.execution_id
+
+                ??
+
+                replay.id
+
+                ??
+
+                "-"
+
         },
 
 
+
+
+
+
         {
+
+            metric:"Execution Type",
+
+            original:
+
+                original.execution_type
+
+                ??
+
+                "NORMAL",
+
+
+            replay:
+
+                replay.execution_type
+
+                ??
+
+                "REPLAY"
+
+        },
+
+
+
+
+
+
+
+        {
+
             metric:"Model",
+
             original:
-                originalOutput.model
-                ??
+
+
                 original.model
+
                 ??
-                "N/A",
+
+                originalResult.model
+
+                ??
+
+                originalTrace.output?.model
+
+                ??
+
+                "unknown",
+
+
+
 
             replay:
+
+
                 replay.model
+
                 ??
-                replayOutput.model
+
+                replayResult.model
+
                 ??
-                "N/A"
+
+                replayTrace.output?.model
+
+                ??
+
+                "unknown"
+
         },
 
 
+
+
+
+
+
+
         {
+
             metric:"Agent",
+
             original:
+
+
                 original.agent
+
                 ??
-                "N/A",
+
+                "unknown",
+
+
+
 
             replay:
+
+
                 replay.agent
+
                 ??
-                "N/A"
+
+                "unknown"
+
         },
 
 
+
+
+
+
+
+
+
         {
+
+            metric:"Provider",
+
+            original:
+
+
+                original.provider
+
+                ??
+
+                "local",
+
+
+
+
+            replay:
+
+
+                replay.provider
+
+                ??
+
+                "local"
+
+        },
+
+
+
+
+
+
+
+
+
+
+        {
+
             metric:"Trust Score",
+
             original:
-                Number(
-                    original.trust_score ?? 0
-                ).toFixed(2),
+
+
+                score(
+
+                    original.trust_score
+
+                ),
+
+
+
 
             replay:
-                Number(
-                    replay.trust_score ?? 0
-                ).toFixed(2)
+
+
+                score(
+
+                    replay.trust_score
+
+                )
+
         },
 
 
+
+
+
+
+
+
+
         {
+
             metric:"Decision",
+
             original:
-                original.decision,
+
+
+                original.decision
+
+                ??
+
+                "UNKNOWN",
+
+
+
 
             replay:
+
+
                 replay.decision
+
+                ??
+
+                "UNKNOWN"
+
         },
 
 
+
+
+
+
+
+
+
         {
+
             metric:"Risk Score",
+
             original:
-                original.risk_score ?? 0,
+
+
+                score(
+
+                    original.risk_score
+
+                ),
+
+
+
 
             replay:
-                replay.risk_score ?? 0
+
+
+                score(
+
+                    replay.risk_score
+
+                )
+
         },
 
 
+
+
+
+
+
+
+
         {
+
             metric:"Quality Score",
+
             original:
 
-                originalOutput.quality_score_qt
-                ??
-                originalOutput.trace?.output?.quality_score
-                ??
-                original.telemetry?.quality_score
-                ??
-                0,
+
+                score(
+
+                    quality(
+
+                        original,
+
+                        originalResult
+
+                    )
+
+                ),
+
+
+
 
 
             replay:
 
-                replay.quality_score
-                ??
-                replayOutput.quality_score_qt
-                ??
-                replay.telemetry?.quality_score
-                ??
-                0
+
+                score(
+
+                    quality(
+
+                        replay,
+
+                        replayResult
+
+                    )
+
+                )
+
         },
 
 
+
+
+
+
+
+
+
         {
-            metric:"Runtime",
+
+            metric:"Runtime (ms)",
 
             original:
 
-                originalOutput.latency_ms
-                ??
-                original.runtime_ms
-                ??
-                0,
+
+                runtime(
+
+                    original,
+
+                    originalResult
+
+                ),
+
+
+
+
 
             replay:
 
-                replay.runtime_ms
-                ??
-                replay.telemetry?.latency_ms
-                ??
-                0
+
+                runtime(
+
+                    replay,
+
+                    replayResult
+
+                )
+
+        },
+
+
+
+
+
+
+
+
+
+        {
+
+            metric:"Total Tokens",
+
+            original:
+
+
+                tokens(
+
+                    original,
+
+                    originalResult
+
+                ),
+
+
+
+
+
+            replay:
+
+
+                tokens(
+
+                    replay,
+
+                    replayResult
+
+                )
+
         }
+
 
 
     ];
@@ -175,31 +703,52 @@ export default function ExecutionComparison({
 
 
 
+
+
+
+
     return (
+
+
 
         <div className="comparison-card">
 
 
+
+
+
             <h2>
+
                 🔁 Execution Comparison
+
             </h2>
+
+
+
+
+
 
 
 
             <table>
 
 
+
                 <thead>
 
+
                     <tr>
+
 
                         <th>
                             Metric
                         </th>
 
+
                         <th>
                             Original
                         </th>
+
 
                         <th>
                             Replay
@@ -208,7 +757,13 @@ export default function ExecutionComparison({
 
                     </tr>
 
+
                 </thead>
+
+
+
+
+
 
 
 
@@ -216,42 +771,96 @@ export default function ExecutionComparison({
 
 
                 {
+
+
                     rows.map(
+
                         (row,index)=>(
 
-                        <tr key={index}>
 
-                            <td>
-                                {row.metric}
-                            </td>
+                            <tr
 
+                                key={index}
 
-                            <td>
-                                {String(row.original)}
-                            </td>
+                            >
 
 
-                            <td>
-                                {String(row.replay)}
-                            </td>
+
+                                <td>
+
+                                    {row.metric}
+
+                                </td>
 
 
-                        </tr>
+
+
+
+                                <td>
+
+                                    {
+
+                                        String(
+
+                                            row.original
+
+                                        )
+
+                                    }
+
+                                </td>
+
+
+
+
+
+                                <td>
+
+                                    {
+
+                                        String(
+
+                                            row.replay
+
+                                        )
+
+                                    }
+
+                                </td>
+
+
+
+
+                            </tr>
+
 
                         )
+
                     )
+
+
                 }
 
 
+
                 </tbody>
+
+
+
+
 
 
             </table>
 
 
 
+
+
         </div>
 
+
+
     );
+
 
 }

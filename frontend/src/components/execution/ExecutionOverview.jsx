@@ -1,6 +1,8 @@
 export default function ExecutionOverview({
+
     execution
-}){
+
+}) {
 
 
     if(!execution){
@@ -11,15 +13,132 @@ export default function ExecutionOverview({
 
 
 
-    // ===============================
-    // Trust Level
-    // ===============================
+
+
+
+
+    // =====================================
+    // SAFE PARSER
+    // =====================================
+
+
+    function parse(value){
+
+
+        if(!value){
+
+            return {};
+
+        }
+
+
+
+        if(typeof value === "object"){
+
+            return value;
+
+        }
+
+
+
+        try{
+
+            return JSON.parse(value);
+
+        }
+
+        catch{
+
+            return {};
+
+        }
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // NORMALIZE RESULT
+    // =====================================
+
+
+    const result =
+
+
+        parse(
+
+            execution.result
+
+        );
+
+
+
+
+
+
+
+
+    const replayResult =
+
+
+        execution.replay_result
+
+        ??
+
+        {};
+
+
+
+
+
+
+
+
+    const output =
+
+
+        result.result
+
+        ??
+
+        result
+
+        ??
+
+        replayResult;
+
+
+
+
+
+
+
+
+
+    // =====================================
+    // TRUST LEVEL
+    // =====================================
+
 
     function getTrustLevel(score){
 
 
         const value =
-        Number(score || 0);
+
+
+            Number(
+
+                score ?? 0
+
+            );
+
 
 
 
@@ -30,11 +149,14 @@ export default function ExecutionOverview({
         }
 
 
+
+
         if(value >= 60){
 
             return "MEDIUM";
 
         }
+
 
 
         return "LOW";
@@ -46,29 +168,54 @@ export default function ExecutionOverview({
 
 
 
-    // ===============================
-    // Decision Style
-    // ===============================
+
+
+
+
+    // =====================================
+    // DECISION STYLE
+    // =====================================
 
 
     function decisionClass(decision){
 
 
-        if(decision === "APPROVED"){
 
-            return "approved";
+        switch(decision){
+
+
+
+            case "ALLOW":
+
+            case "APPROVED":
+
+            case "ALLOW_WITH_MONITORING":
+
+                return "approved";
+
+
+
+
+            case "BLOCK":
+
+                return "block";
+
+
+
+
+            case "REVIEW":
+
+                return "review";
+
+
+
+
+            default:
+
+                return "review";
+
 
         }
-
-
-        if(decision === "BLOCK"){
-
-            return "block";
-
-        }
-
-
-        return "review";
 
 
     }
@@ -79,7 +226,160 @@ export default function ExecutionOverview({
 
 
 
+
+
+    // =====================================
+    // DATA MAPPING
+    // =====================================
+
+
+    const task =
+
+
+        execution.task
+
+        ??
+
+        output.task
+
+        ??
+
+        replayResult.task
+
+        ??
+
+        "No task provided";
+
+
+
+
+
+
+
+
+    const agent =
+
+
+        execution.agent
+
+        ??
+
+        output.agent
+
+        ??
+
+        replayResult.agent
+
+        ??
+
+        "Unknown Agent";
+
+
+
+
+
+
+
+
+    const trustScore =
+
+
+        execution.trust_score
+
+        ??
+
+        output.trust_score
+
+        ??
+
+        replayResult.trust_score
+
+        ??
+
+        0;
+
+
+
+
+
+
+
+
+    const riskScore =
+
+
+        execution.risk_score
+
+        ??
+
+        output.risk_score
+
+        ??
+
+        replayResult.risk_score
+
+        ??
+
+        0;
+
+
+
+
+
+
+
+
+    const decision =
+
+
+        execution.decision
+
+        ??
+
+        output.decision
+
+        ??
+
+        replayResult.decision
+
+        ??
+
+        "UNKNOWN";
+
+
+
+
+
+
+
+
+    const createdAt =
+
+
+        execution.created_at
+
+        ??
+
+        execution.updated_at
+
+        ??
+
+        output.timestamp
+
+        ??
+
+        null;
+
+
+
+
+
+
+
+
+
     return (
+
 
 
         <div className="execution-card">
@@ -88,9 +388,15 @@ export default function ExecutionOverview({
 
 
 
+
+
             <h2>
+
                 📌 Execution Overview
+
             </h2>
+
+
 
 
 
@@ -105,24 +411,22 @@ export default function ExecutionOverview({
 
 
                 <span>
+
                     Task
+
                 </span>
 
 
 
                 <strong>
 
-                {
-                    execution.task
-                    ||
-                    "No task provided"
-                }
+                    {task}
 
                 </strong>
 
 
-
             </div>
+
 
 
 
@@ -138,21 +442,18 @@ export default function ExecutionOverview({
 
 
                 <span>
+
                     Agent
+
                 </span>
 
 
 
                 <strong>
 
-                {
-                    execution.agent
-                    ||
-                    "Unknown Agent"
-                }
+                    {agent}
 
                 </strong>
-
 
 
             </div>
@@ -172,7 +473,9 @@ export default function ExecutionOverview({
 
 
                 <span>
+
                     Trust Score
+
                 </span>
 
 
@@ -180,31 +483,24 @@ export default function ExecutionOverview({
                 <strong>
 
 
-                {
-                    execution.trust_score !== null
-                    &&
-                    execution.trust_score !== undefined
+                    {
 
-                    ?
+                        Number(
 
-                    Number(
-                        execution.trust_score
-                    )
-                    .toFixed(2)
+                            trustScore
 
+                        )
 
-                    :
+                        .toFixed(2)
 
-                    "N/A"
-
-                }
+                    }
 
 
                 </strong>
 
 
-
             </div>
+
 
 
 
@@ -220,24 +516,32 @@ export default function ExecutionOverview({
 
 
                 <span>
+
                     Trust Level
+
                 </span>
 
 
 
                 <strong
-                className="trust-label"
+
+                    className="trust-label"
+
                 >
 
-                {
-                    getTrustLevel(
-                        execution.trust_score
-                    )
-                }
+
+                    {
+
+                        getTrustLevel(
+
+                            trustScore
+
+                        )
+
+                    }
 
 
                 </strong>
-
 
 
             </div>
@@ -257,30 +561,46 @@ export default function ExecutionOverview({
 
 
                 <span>
+
                     Risk Score
+
                 </span>
 
 
 
                 <strong
-                className={
-                    execution.risk_score > 50
-                    ?
-                    "risk-high"
-                    :
-                    "risk-low"
-                }
+
+                    className={
+
+                        Number(riskScore) > 50
+
+                        ?
+
+                        "risk-high"
+
+                        :
+
+                        "risk-low"
+
+                    }
+
                 >
 
-                {
-                    execution.risk_score
-                    ??
-                    0
-                }
+
+                    {
+
+                        Number(
+
+                            riskScore
+
+                        )
+
+                        .toFixed(2)
+
+                    }
 
 
                 </strong>
-
 
 
             </div>
@@ -300,37 +620,32 @@ export default function ExecutionOverview({
 
 
                 <span>
+
                     Decision
+
                 </span>
 
 
 
                 <strong
 
-                className={
+                    className={
 
-                    `
-                    decision-badge
-                    ${
-                        decisionClass(
-                            execution.decision
-                        )
+                        `decision-badge ${
+                            decisionClass(
+                                decision
+                            )
+                        }`
+
                     }
-                    `
-
-                }
 
                 >
 
-                {
-                    execution.decision
-                    ||
-                    "UNKNOWN"
-                }
+
+                    {decision}
 
 
                 </strong>
-
 
 
             </div>
@@ -343,14 +658,16 @@ export default function ExecutionOverview({
 
 
 
-            {/* CREATED TIME */}
+            {/* CREATED */}
 
 
             <div className="info-row">
 
 
                 <span>
+
                     Created
+
                 </span>
 
 
@@ -360,15 +677,19 @@ export default function ExecutionOverview({
 
                 {
 
-                    execution.created_at
+
+                    createdAt
 
 
                     ?
 
 
                     new Date(
-                        execution.created_at
+
+                        createdAt
+
                     )
+
                     .toLocaleString()
 
 
@@ -378,12 +699,11 @@ export default function ExecutionOverview({
 
                     "N/A"
 
+
                 }
 
 
-
                 </strong>
-
 
 
             </div>
@@ -395,6 +715,7 @@ export default function ExecutionOverview({
 
 
         </div>
+
 
 
     );

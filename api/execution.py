@@ -8,21 +8,32 @@ from sqlalchemy.orm import Session
 
 from database.session import get_db
 
+
 from database.models import (
     Agent,
     Execution
 )
 
+
 from schemas.execution import (
+
     ExecuteRequest,
+
     ExecutionResponse,
+
     CostResponse,
+
     TokenTelemetryResponse
+
 )
+
 
 from services.execution_service import ExecutionService
 
+
 import json
+
+
 
 
 
@@ -32,20 +43,76 @@ import json
 # ROUTER
 # =====================================================
 
+
 router = APIRouter(
-    prefix="/api/execution",
-    tags=["Execution"]
+
+    prefix="/execution",
+
+    tags=[
+        "Execution"
+    ]
+
 )
 
 
 
 
 
+
+
 # =====================================================
-# SERVICE
+# SERVICE INSTANCE
 # =====================================================
 
+
 service = ExecutionService()
+
+
+
+
+
+
+
+# =====================================================
+# JSON PARSER
+# =====================================================
+
+
+def parse_json(value):
+
+
+    if value is None:
+
+        return None
+
+
+
+    if isinstance(
+        value,
+        dict
+    ):
+
+        return value
+
+
+
+    try:
+
+        return json.loads(
+            value
+        )
+
+
+    except Exception:
+
+
+        return {
+
+            "response": value
+
+        }
+
+
 
 
 
@@ -63,46 +130,67 @@ service = ExecutionService()
     response_model=ExecutionResponse
 )
 def execute_task(
+
     request: ExecuteRequest,
+
     db: Session = Depends(get_db)
+
 ):
 
 
     # =================================================
-    # 1. FIND AGENT
+    # 1. AGENT RESOLUTION
     # =================================================
 
 
     selected_agent = None
 
 
+
     if request.agent_id:
 
 
         selected_agent = (
-            db.query(Agent)
-            .filter(
-                Agent.id == request.agent_id
+
+            db.query(
+                Agent
             )
+
+            .filter(
+                Agent.id ==
+                request.agent_id
+            )
+
             .first()
+
         )
 
 
-        if not selected_agent:
+
+        if selected_agent is None:
+
 
             raise HTTPException(
+
                 status_code=404,
+
                 detail="Agent not found"
+
             )
 
 
 
         if selected_agent.status != "ACTIVE":
 
+
             raise HTTPException(
+
                 status_code=403,
+
                 detail="Agent disabled"
+
             )
+
 
 
 
@@ -111,7 +199,7 @@ def execute_task(
 
 
     # =================================================
-    # 2. RUNTIME CONFIG
+    # 2. RUNTIME CONFIGURATION
     # =================================================
 
 
@@ -120,9 +208,15 @@ def execute_task(
 
         agent_name = selected_agent.name
 
+
         model = selected_agent.model
 
+
         provider = selected_agent.provider
+
+
+
+        agent_id = selected_agent.id
 
 
 
@@ -130,25 +224,41 @@ def execute_task(
 
 
         agent_name = (
+
             request.agent
+
             or
+
             "TrustOSAI Runtime Agent"
+
         )
+
 
 
         model = (
+
             request.model
+
             or
+
             "local"
+
         )
+
 
 
         provider = (
+
             request.provider
+
             or
+
             "local"
+
         )
 
+
+        agent_id = None
 
 
 
@@ -157,7 +267,7 @@ def execute_task(
 
 
     # =================================================
-    # 3. EXECUTION
+    # 3. EXECUTION PIPELINE
     # =================================================
 
 
@@ -168,6 +278,8 @@ def execute_task(
         db=db,
 
         agent=agent_name,
+
+        agent_id=agent_id,
 
         model=model,
 
@@ -181,18 +293,24 @@ def execute_task(
 
 
 
+
+
     # =================================================
-    # 4. PARSE RESULT
+    # 4. RESULT EXTRACTION
     # =================================================
 
 
     token_data = {
 
+
         "prompt_tokens":0,
+
 
         "completion_tokens":0,
 
+
         "total_tokens":0,
+
 
         "context_window":8000
 
@@ -207,49 +325,73 @@ def execute_task(
 
 
 
-    try:
 
 
-        data = json.loads(
-            execution.result
-        )
+
+    parsed_result = parse_json(
+
+        execution.result
+
+    )
 
 
-        final_model = data.get(
+
+
+    if isinstance(
+        parsed_result,
+        dict
+    ):
+
+
+
+        final_model = parsed_result.get(
+
             "model",
+
             model
+
         )
 
 
-        token_data = data.get(
+
+        token_data = parsed_result.get(
+
             "token_telemetry",
+
             token_data
+
         )
 
 
-        trace = data.get(
+
+        trace = parsed_result.get(
+
             "trace",
+
             {}
+
         )
+
 
 
         output = trace.get(
+
             "output",
+
             {}
+
         )
+
 
 
         final_provider = output.get(
+
             "provider",
+
             provider
+
         )
 
-
-
-    except Exception:
-
-
-        pass
 
 
 
@@ -259,59 +401,110 @@ def execute_task(
 
 
     # =================================================
-    # 5. UPDATE AGENT ANALYTICS
+    # 5. UPDATE EXECUTION STATUS
+    # =================================================
+
+
+    execution.status = "COMPLETED"
+
+
+    db.commit()
+
+
+    db.refresh(
+        execution
+    )
+
+
+
+
+
+
+
+
+
+    # =================================================
+    # 6. UPDATE AGENT ANALYTICS
     # =================================================
 
 
     if selected_agent:
 
 
+
         total = (
-            db.query(Execution)
-            .filter(
-                Execution.agent_id ==
-                selected_agent.id
+
+            db.query(
+                Execution
             )
+
+            .filter(
+
+                Execution.agent_id
+
+                ==
+
+                selected_agent.id
+
+            )
+
             .count()
+
         )
+
 
 
         selected_agent.total_executions = total
 
 
 
-        if total:
 
 
-            avg = (
+        if total > 0:
+
+
+            values = (
 
                 db.query(
-                    Execution
-                )
-                .filter(
-                    Execution.agent_id ==
-                    selected_agent.id
-                )
-                .with_entities(
+
                     Execution.trust_score
+
                 )
+
+                .filter(
+
+                    Execution.agent_id
+
+                    ==
+
+                    selected_agent.id
+
+                )
+
                 .all()
 
             )
 
 
+
             selected_agent.average_trust = round(
 
                 sum(
-                    x[0]
-                    for x in avg
+
+                    item[0] or 0
+
+                    for item in values
+
                 )
+
                 /
+
                 total,
 
                 2
 
             )
+
 
 
         db.commit()
@@ -323,8 +516,11 @@ def execute_task(
 
 
 
+
+
+
     # =================================================
-    # 6. RESPONSE
+    # 7. RESPONSE
     # =================================================
 
 
@@ -332,13 +528,17 @@ def execute_task(
 
 
 
+
         execution_id=execution.id,
+
 
 
         task=execution.task,
 
 
+
         agent=execution.agent,
+
 
 
         agent_id=execution.agent_id,
@@ -346,7 +546,13 @@ def execute_task(
 
 
 
-        # Governance
+
+
+
+        # -------------------------
+        # GOVERNANCE
+        # -------------------------
+
 
         trust_score=execution.trust_score or 0,
 
@@ -357,84 +563,18 @@ def execute_task(
         conflict_score=execution.conflict_score or 0,
 
 
+
         decision=execution.decision,
 
 
 
-        reasoning=execution.governance_reason,
+        reasoning=(
 
+            execution.governance_reason
 
+            or
 
-
-
-
-        # Result
-
-        result=execution.result,
-
-
-        status="COMPLETED",
-
-
-
-
-
-
-        # Telemetry
-
-
-        quality_score=execution.quality_score or 0,
-
-
-        latency_ms=execution.latency_ms or 0,
-
-
-        runtime_ms=execution.runtime_ms or 0,
-
-
-
-
-
-
-
-        # Model
-
-
-        provider=final_provider,
-
-
-        model=final_model,
-
-
-
-
-
-
-
-        # Cost
-
-
-        cost=CostResponse(
-
-            input_tokens=token_data.get(
-                "prompt_tokens",
-                0
-            ),
-
-            output_tokens=token_data.get(
-                "completion_tokens",
-                0
-            ),
-
-            total_tokens=token_data.get(
-                "total_tokens",
-                0
-            ),
-
-            total_cost=execution.cost_usd or 0,
-
-
-            currency=execution.currency or "USD"
+            execution.reasoning
 
         ),
 
@@ -444,32 +584,143 @@ def execute_task(
 
 
 
-        # Token
+        # -------------------------
+        # RESULT
+        # -------------------------
 
 
-        token_telemetry=TokenTelemetryResponse(
+        result=parsed_result,
 
-            prompt_tokens=token_data.get(
+
+
+        status=execution.status,
+
+
+
+
+
+
+
+        # -------------------------
+        # TELEMETRY
+        # -------------------------
+
+
+        quality_score=(
+
+            execution.quality_score
+
+            or
+
+            0
+
+        ),
+
+
+
+        latency_ms=(
+
+            execution.latency_ms
+
+            or
+
+            0
+
+        ),
+
+
+
+        runtime_ms=(
+
+            execution.runtime_ms
+
+            or
+
+            0
+
+        ),
+
+
+
+
+
+
+
+        # -------------------------
+        # MODEL
+        # -------------------------
+
+
+        model=final_model,
+
+
+        provider=final_provider,
+
+
+
+
+
+
+
+        # -------------------------
+        # COST
+        # -------------------------
+
+
+        cost=CostResponse(
+
+
+
+            input_tokens=token_data.get(
+
                 "prompt_tokens",
+
                 0
+
             ),
 
 
-            completion_tokens=token_data.get(
+
+            output_tokens=token_data.get(
+
                 "completion_tokens",
+
                 0
+
             ),
+
 
 
             total_tokens=token_data.get(
+
                 "total_tokens",
+
                 0
+
             ),
 
 
-            context_window=token_data.get(
-                "context_window",
-                8000
+
+            total_cost=(
+
+                execution.cost_usd
+
+                or
+
+                0
+
+            ),
+
+
+
+            currency=(
+
+                execution.currency
+
+                or
+
+                "USD"
+
             )
 
         ),
@@ -479,13 +730,85 @@ def execute_task(
 
 
 
-        # Replay
+
+        # -------------------------
+        # TOKEN TELEMETRY
+        # -------------------------
 
 
-        execution_type=execution.execution_type or "NORMAL",
+        token_telemetry=TokenTelemetryResponse(
 
 
-        parent_execution_id=execution.parent_execution_id,
+
+            prompt_tokens=token_data.get(
+
+                "prompt_tokens",
+
+                0
+
+            ),
+
+
+
+            completion_tokens=token_data.get(
+
+                "completion_tokens",
+
+                0
+
+            ),
+
+
+
+            total_tokens=token_data.get(
+
+                "total_tokens",
+
+                0
+
+            ),
+
+
+
+            context_window=token_data.get(
+
+                "context_window",
+
+                8000
+
+            )
+
+        ),
+
+
+
+
+
+
+
+        # -------------------------
+        # REPLAY
+        # -------------------------
+
+
+        execution_type=(
+
+            execution.execution_type
+
+            or
+
+            "NORMAL"
+
+        ),
+
+
+
+        parent_execution_id=(
+
+            execution.parent_execution_id
+
+        ),
+
 
 
 
@@ -497,5 +820,7 @@ def execute_task(
 
 
         created_at=execution.created_at
+
+
 
     )

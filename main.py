@@ -1,19 +1,27 @@
+from contextlib import asynccontextmanager
+
+
 from fastapi import FastAPI
+
 
 from fastapi.middleware.cors import CORSMiddleware
 
 
 
+from sqlalchemy import text
+
+
 from database.connection import (
     Base,
-    engine
+    engine,
+    SessionLocal
 )
 
 
 
-# ==================================================
-# Load Database Models
-# ==================================================
+# =====================================================
+# LOAD DATABASE MODELS
+# =====================================================
 
 import database.models
 
@@ -21,10 +29,10 @@ import database.models
 
 
 
-# ==================================================
+# =====================================================
 # API ROUTER
-# api/routes.py
-# ==================================================
+# =====================================================
+
 
 from api.routes import router
 
@@ -32,27 +40,54 @@ from api.routes import router
 
 
 
-
-# ==================================================
-# Database Initialization
-# ==================================================
-
-Base.metadata.create_all(
-
-    bind=engine
-
-)
+# =====================================================
+# APPLICATION LIFESPAN
+# =====================================================
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+
+    print(
+        "⚡ Starting TrustOSAI Runtime..."
+    )
+
+
+    # ---------------------------------------------
+    # Create Database Tables
+    # ---------------------------------------------
+
+
+    Base.metadata.create_all(
+        bind=engine
+    )
+
+
+
+    print(
+        "✅ Database initialized"
+    )
+
+
+    yield
+
+
+
+    print(
+        "🛑 TrustOSAI Runtime shutdown"
+    )
 
 
 
 
 
 
-# ==================================================
-# FastAPI Application
-# ==================================================
+
+# =====================================================
+# FASTAPI APPLICATION
+# =====================================================
+
 
 app = FastAPI(
 
@@ -99,8 +134,10 @@ Core Capabilities:
 
 
 
-"""
+""",
 
+
+    lifespan=lifespan
 
 )
 
@@ -110,12 +147,9 @@ Core Capabilities:
 
 
 
-
-
-# ==================================================
-# CORS Configuration
-# Frontend: Vite React
-# ==================================================
+# =====================================================
+# CORS
+# =====================================================
 
 
 app.add_middleware(
@@ -129,9 +163,12 @@ app.add_middleware(
 
         "http://localhost:5173",
 
+
         "http://localhost:5174",
 
+
         "http://127.0.0.1:5173",
+
 
         "http://127.0.0.1:5174"
 
@@ -145,21 +182,13 @@ app.add_middleware(
 
 
     allow_methods=[
-
-
         "*"
-
-
     ],
 
 
 
     allow_headers=[
-
-
         "*"
-
-
     ]
 
 )
@@ -171,19 +200,9 @@ app.add_middleware(
 
 
 
-
-# ==================================================
-# Register All API Routes
-#
-# api/routes.py handles:
-#
-# /api/agents
-# /api/executions
-# /api/policy
-# /api/trust
-# ...
-#
-# ==================================================
+# =====================================================
+# REGISTER ROUTERS
+# =====================================================
 
 
 app.include_router(
@@ -198,14 +217,13 @@ app.include_router(
 
 
 
-
-
-# ==================================================
-# Root Endpoint
-# ==================================================
+# =====================================================
+# ROOT
+# =====================================================
 
 
 @app.get("/")
+
 
 def root():
 
@@ -214,57 +232,69 @@ def root():
 
 
         "system":
-
             "TrustOSAI",
 
 
 
         "architecture":
-
             "Trust-aware AI Execution Control Plane",
 
 
 
         "runtime":
-
             "Adaptive AI Governance Runtime",
 
 
 
         "database":
-
             "PostgreSQL",
 
 
 
         "version":
-
             "2.0.0",
 
 
 
         "features":[
 
+
             "Agent Registry",
+
 
             "Policy Engine",
 
+
             "Trust Engine",
+
+
+            "Risk Engine",
+
+
+            "Conflict Engine",
+
 
             "Model Router",
 
+
             "Execution Replay",
 
+
+            "Memory Engine",
+
+
+            "Cost Attribution",
+
+
             "Audit Telemetry"
+
 
         ],
 
 
 
         "status":
-
             "online"
-
 
     }
 
@@ -275,35 +305,79 @@ def root():
 
 
 
-
-# ==================================================
-# Health Check
-# ==================================================
+# =====================================================
+# HEALTH CHECK
+# =====================================================
 
 
 @app.get("/health")
 
+
 def health():
+
+
+    database_status = "offline"
+
+
+
+    try:
+
+
+        db = SessionLocal()
+
+
+        db.execute(
+            text(
+                "SELECT 1"
+            )
+        )
+
+
+        database_status = "online"
+
+
+
+    except Exception:
+
+
+        database_status = "offline"
+
+
+
+    finally:
+
+
+        try:
+
+            db.close()
+
+        except:
+
+            pass
+
+
+
 
 
     return {
 
 
         "status":
-
             "healthy",
 
 
 
         "service":
-
             "TrustOSAI Runtime",
 
 
 
         "version":
+            "2.0.0",
 
-            "2.0.0"
 
+
+        "database":
+            database_status
 
     }
