@@ -1,26 +1,39 @@
 # ⚡ TrustOSAI
-## Adaptive AI Governance Runtime for Trust-Aware Autonomous AI Execution
 
-![TrustOSAI Banner](https://img.shields.io/badge/TrustOSAI-AI%20Governance%20Runtime-blue)
-![Python](https://img.shields.io/badge/Python-FastAPI-green)
-![React](https://img.shields.io/badge/Frontend-React-blue)
-![Database](https://img.shields.io/badge/Database-PostgreSQL-blue)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+## Adaptive AI Governance Runtime for Trust-Aware Autonomous AI Systems
+
+<p align="center">
+  <b>TrustOSAI is an AI Governance Runtime that enables secure, observable, and policy-controlled autonomous AI execution.</b>
+</p>
 
 ---
 
 ## 🌐 Overview
 
-**TrustOSAI** is an adaptive AI governance runtime designed to make autonomous AI systems more **trustworthy, observable, controllable, and auditable**.
+Modern AI systems are becoming increasingly autonomous.
 
-Instead of allowing AI agents to execute directly, TrustOSAI introduces a governance layer that evaluates every AI execution through:
+However, autonomous AI agents require more than intelligence. They require:
 
-- Trust assessment
-- Risk analysis
+- Trust
+- Governance
+- Transparency
+- Safety controls
+- Execution accountability
+
+**TrustOSAI** introduces a governance layer between users, AI agents, and AI models.
+
+Instead of allowing AI agents to execute directly, TrustOSAI evaluates every execution through:
+
 - Policy enforcement
+- Trust scoring
+- Risk analysis
 - Model routing
-- Execution monitoring
+- Runtime monitoring
 - Audit logging
-- Replay-based verification
+- Execution replay
 
-TrustOSAI acts as an **AI control plane** between users, AI agents, and model providers.
+TrustOSAI acts as an **AI Control Plane** for the next generation of autonomous intelligence systems.
+
+---
+
+# 🏗 TrustOSAI Architecture
