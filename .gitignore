@@ -1,22 +1,58 @@
-# Python
+# ==========================================
+# Python / Virtual Environment
+# ==========================================
+
 .venv/
 venv/
 __pycache__/
 *.py[cod]
 
-# Environment / secrets
+
+# ==========================================
+# Environment / Secrets
+# ==========================================
+
 .env
 .env.*
 !.env.example
 
+*.pem
+*.key
+
+credentials/
+secrets/
+
+
+# ==========================================
+# Runtime Generated Files
+# ==========================================
+
+uploads/
+tmp/
+temp/
+
+execution_logs/
+telemetry_logs/
+runtime_cache/
+
+*.jsonl
+
+
+# ==========================================
 # IDE / OS
+# ==========================================
+
 .vscode/
 .idea/
 *.swp
 .DS_Store
 Thumbs.db
 
-# LaTeX build artifacts
+
+# ==========================================
+# LaTeX Build Artifacts
+# ==========================================
+
 *.aux
 *.bbl
 *.blg

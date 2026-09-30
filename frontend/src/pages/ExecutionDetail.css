@@ -1,0 +1,364 @@
+.execution-page{
+
+padding:30px;
+
+color:white;
+
+}
+
+
+
+.back-btn{
+
+
+background:#1e293b;
+
+color:white;
+
+padding:10px 20px;
+
+border:none;
+
+border-radius:8px;
+
+cursor:pointer;
+
+margin-bottom:20px;
+
+
+}
+
+
+
+
+.execution-header{
+
+
+margin-bottom:30px;
+
+
+}
+
+
+
+
+.overview-grid{
+
+
+display:grid;
+
+grid-template-columns:
+
+repeat(3,1fr);
+
+gap:20px;
+
+
+}
+
+
+
+
+
+.info-card,
+.metric-card{
+
+
+background:#111827;
+
+padding:20px;
+
+border-radius:15px;
+
+
+}
+
+
+
+
+
+.execution-actions{
+
+
+display:flex;
+
+gap:15px;
+
+margin:25px 0;
+
+
+}
+
+
+
+.execution-actions button{
+
+
+background:#2563eb;
+
+color:white;
+
+padding:12px 20px;
+
+border:none;
+
+border-radius:10px;
+
+cursor:pointer;
+
+
+}
+
+
+
+
+.advanced-grid{
+
+
+display:grid;
+
+grid-template-columns:
+
+repeat(3,1fr);
+
+gap:20px;
+
+margin:25px 0;
+
+
+}
+
+
+
+
+
+.timeline{
+
+
+background:#111827;
+
+padding:25px;
+
+border-radius:15px;
+
+}
+
+
+
+
+
+.timeline-item{
+
+
+padding:12px;
+
+border-bottom:1px solid #334155;
+
+
+}
+
+
+
+
+
+.output-panel{
+
+
+background:#020617;
+
+padding:25px;
+
+border-radius:15px;
+
+
+}
+
+
+
+
+.output-panel pre{
+
+
+background:black;
+
+padding:20px;
+
+overflow:auto;
+
+border-radius:10px;
+
+
+}
+
+
+
+
+.runtime-box{
+
+
+background:#0f172a;
+
+padding:20px;
+
+border-radius:12px;
+
+margin-top:20px;
+
+
+}
+
+
+
+
+
+@media(max-width:900px){
+
+
+.overview-grid,
+.advanced-grid{
+
+
+grid-template-columns:1fr;
+
+
+}
+
+
+}
+/* ==============================
+   Decision Badge
+============================== */
+
+.execution-decision {
+
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:15px;
+
+}
+
+
+.badge {
+
+    display:inline-block;
+
+    padding:6px 14px;
+
+    border-radius:20px;
+
+    font-size:13px;
+
+    font-weight:bold;
+
+}
+
+
+/* ALLOW */
+
+.badge.allow {
+
+    background:#14532d;
+
+    color:#bbf7d0;
+
+}
+
+
+
+/* ALLOW_WITH_MONITORING */
+
+.badge.allow-with-monitoring {
+
+    background:#1d4ed8;
+
+    color:#dbeafe;
+
+}
+
+
+
+/* REVIEW */
+
+.badge.review {
+
+    background:#854d0e;
+
+    color:#fde68a;
+
+}
+
+
+
+/* BLOCK */
+
+.badge.block {
+
+    background:#7f1d1d;
+
+    color:#fecaca;
+
+}
+.execution-diff-card{
+
+    margin-top:20px;
+
+    padding:20px;
+
+    border-radius:12px;
+
+    background:#111827;
+
+    border:1px solid #334155;
+
+}
+
+
+
+.execution-diff-card h3{
+
+    margin-bottom:15px;
+
+}
+
+
+
+.diff-row{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    padding:10px 0;
+
+    border-bottom:1px solid #1e293b;
+
+}
+
+
+
+.diff-warning{
+
+    margin-top:15px;
+
+    padding:10px;
+
+    border-radius:8px;
+
+    background:#78350f;
+
+}
+
+
+
+.diff-success{
+
+    margin-top:15px;
+
+    padding:10px;
+
+    border-radius:8px;
+
+    background:#065f46;
+
+}
